@@ -29,6 +29,32 @@ export function isSensitiveAuditKey(key: string | null | undefined): boolean {
   return AUDIT_SENSITIVE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern));
 }
 
+export function redactAuditUrl(url: string): string {
+  return url
+    .split('&')
+    .map((field, index) => {
+      // The first field starts after a question mark. Later fields already follow an ampersand.
+      let keyStart = index === 0 ? -1 : 0;
+      while (keyStart < 0 || field[keyStart] === '=') {
+        const separator = field.indexOf('?', keyStart + 1);
+        if (separator === -1) return field;
+        keyStart = separator + 1;
+      }
+
+      const equals = field.indexOf('=', keyStart);
+      if (equals === -1) return field;
+
+      const redacted = `${field.slice(0, equals + 1)}[REDACTED]`;
+      try {
+        const key = decodeURIComponent(field.slice(keyStart, equals));
+        return isSensitiveAuditKey(key) ? redacted : field;
+      } catch {
+        return redacted;
+      }
+    })
+    .join('&');
+}
+
 export function sanitizeAuditData(
   input: any,
   seen: WeakSet<object> = new WeakSet(),

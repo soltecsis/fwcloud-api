@@ -32,6 +32,7 @@ import { SnapshotController } from '../controllers/snapshots/snapshot.controller
 import { isLoggedIn } from '../gates/isLoggedIn';
 import { FwCloudExportController } from '../controllers/fwclouds/fwcloud-export/fwcloud-export.controller';
 import { OpenVPNController } from '../controllers/firewalls/openvpn/openvpn.controller';
+import { VPNClientsController } from '../controllers/firewalls/vpn-clients.controller';
 import { OpenVPNStatusSamplingController } from '../controllers/firewalls/openvpn/openvpn-status-sampling.controller';
 import { FwCloudController } from '../controllers/fwclouds/fwcloud.controller';
 import { UpdateController } from '../controllers/updates/update.controller';
@@ -43,6 +44,7 @@ import { RoutingRuleController } from '../controllers/routing/routing-rule/routi
 import { RoutingGroupController } from '../controllers/routing/routing-group/routing-group.controller';
 import { RouteGroupController } from '../controllers/routing/route-group/route-group.controller';
 import { FirewallController } from '../controllers/firewalls/firewall.controller';
+import { ClusterController } from '../controllers/clusters/cluster.controller';
 import { PolicyRuleController } from '../controllers/policy-rule/policy-rule.controller';
 import { TfaController } from '../controllers/auth/tfa.controller';
 import { CaController } from '../controllers/ca/ca.controller';
@@ -66,6 +68,8 @@ import { AuditLogArchiveConfigController } from '../controllers/audit/audit-log-
 import { AuditLogArchiveController } from '../controllers/audit/audit-log-archive.controller';
 import { CrowdSecController } from '../controllers/system/crowdsec/crowdsec.controller';
 import { CrowdSecClusterController } from '../controllers/system/crowdsec/crowdsec-cluster.controller';
+
+import { consultationOperation, sessionOperation } from '../authorization/operation-policy';
 
 export class Routes extends RouteCollection {
   public routes(router: RouterParser): void {
@@ -155,7 +159,10 @@ export class Routes extends RouteCollection {
           router
             .put('/restricted', WireGuardController, 'restricted')
             .name('vpn.wireguard.restrictions');
-          router.put('/where', WireGuardController, 'where').name('vpn.wireguard.where');
+          router
+            .put('/where', WireGuardController, 'where')
+            .operation(consultationOperation)
+            .name('vpn.wireguard.where');
           router.put('/install', WireGuardController, 'install').name('vpn.wireguard.install');
           router
             .put('/uninstall', WireGuardController, 'uninstall')
@@ -185,6 +192,7 @@ export class Routes extends RouteCollection {
               .name('vpn.wireguard.prefix.restrictions');
             router
               .put('/where', WireGuardPrefixController, 'where')
+              .operation(consultationOperation)
               .name('vpn.wireguard.prefix.where');
             router
               .put('/del', WireGuardPrefixController, 'delete')
@@ -203,7 +211,10 @@ export class Routes extends RouteCollection {
           //router.get('/firewall/get', IPSecController, 'getFirewall').name('vpn.ipsec.firewall.get');
           router.put('/del', IPSecController, 'delete').name('vpn.ipsec.delete');
           router.put('/restricted', IPSecController, 'restricted').name('vpn.ipsec.restrictions');
-          router.put('/where', IPSecController, 'where').name('vpn.ipsec.where');
+          router
+            .put('/where', IPSecController, 'where')
+            .operation(consultationOperation)
+            .name('vpn.ipsec.where');
           router.put('/install', IPSecController, 'install').name('vpn.ipsec.install');
           router.put('/uninstall', IPSecController, 'uninstall').name('vpn.ipsec.uninstall');
           //router.put('/ccdsync', IPSecController, 'ccdsync').name('vpn.ipsec.ccdsync');
@@ -227,7 +238,10 @@ export class Routes extends RouteCollection {
             router
               .put('/restricted', IPSecPrefixController, 'restricted')
               .name('vpn.ipsec.prefix.restrictions');
-            router.put('/where', IPSecPrefixController, 'where').name('vpn.ipsec.prefix.where');
+            router
+              .put('/where', IPSecPrefixController, 'where')
+              .operation(consultationOperation)
+              .name('vpn.ipsec.prefix.where');
             router.put('/del', IPSecPrefixController, 'delete').name('vpn.ipsec.prefix.del');
           });
         });
@@ -252,6 +266,9 @@ export class Routes extends RouteCollection {
               });
             });
           });
+          router
+            .post('/clusters/:cluster/policy/install', ClusterController, 'installClusterPolicy')
+            .name('fwclouds.clusters.policy.install');
           router.prefix('/firewalls', (router: RouterParser) => {
             router
               .post('/communication/ping', FirewallController, 'pingCommunication')
@@ -281,14 +298,19 @@ export class Routes extends RouteCollection {
               router.prefix('/policyRules', (router: RouterParser) => {
                 router
                   .get('/read', PolicyRuleController, 'read')
+                  .operation(consultationOperation)
                   .name('fwclouds.firewalls.policyRules.read');
                 router
                   .post('/download', PolicyRuleController, 'download')
+                  .operation(consultationOperation)
                   .name('fwclouds.firewalls.policyRules.download');
               });
 
               router.prefix('/openvpns', (router: RouterParser) => {
                 router.prefix('/:openvpn', (router: RouterParser) => {
+                  router
+                    .get('/clients/download', VPNClientsController, 'download')
+                    .name('fwclouds.firewalls.openvpns.clients.download');
                   router
                     .get('/statusSampling', OpenVPNStatusSamplingController, 'show')
                     .name('fwclouds.firewalls.openvpns.statusSampling.show');
@@ -300,15 +322,20 @@ export class Routes extends RouteCollection {
                     .name('fwclouds.firewalls.openvpns.installer');
                   router
                     .get('/history', OpenVPNController, 'history')
+                    .operation(consultationOperation)
                     .name('fwclouds.firewalls.openvpns.history');
                   router
                     .get('/graph', OpenVPNController, 'graph')
+                    .operation(consultationOperation)
                     .name('fwclouds.firewalls.openvpns.graph');
                 });
               });
 
               router.prefix('/wireguards', (router: RouterParser) => {
                 router.prefix('/:wireguard', (router: RouterParser) => {
+                  router
+                    .get('/clients/download', VPNClientsController, 'download')
+                    .name('fwclouds.firewalls.wireguards.clients.download');
                   router
                     .post('/installer', FirewallWireGuardController, 'installer')
                     .name('fwclouds.firewalls.wireguards.installer');
@@ -323,6 +350,9 @@ export class Routes extends RouteCollection {
 
               router.prefix('/ipsecs', (router: RouterParser) => {
                 router.prefix('/:ipsec', (router: RouterParser) => {
+                  router
+                    .get('/clients/download', VPNClientsController, 'download')
+                    .name('fwclouds.firewalls.ipsecs.clients.download');
                   router
                     .post('/installer', FirewallIPSecController, 'installer')
                     .name('fwclouds.firewalls.ipsecs.installer');
@@ -341,13 +371,16 @@ export class Routes extends RouteCollection {
                   .name('fwclouds.firewalls.routing.tables.store');
                 router
                   .get('/', RoutingTableController, 'index')
+                  .operation(consultationOperation)
                   .name('fwclouds.firewalls.routing.tables.index');
                 router.prefix('/:routingTable', (router: RouterParser) => {
                   router
                     .get('/', RoutingTableController, 'show')
+                    .operation(consultationOperation)
                     .name('fwclouds.firewalls.routing.tables.show');
                   router
                     .get('/grid', RoutingTableController, 'grid')
+                    .operation(consultationOperation)
                     .name('fwclouds.firewalls.routing.tables.grid');
                   router
                     .put('/', RoutingTableController, 'update')
@@ -365,6 +398,7 @@ export class Routes extends RouteCollection {
                       .name('fwclouds.firewalls.routing.tables.compile');
                     router
                       .get('/', RouteController, 'index')
+                      .operation(consultationOperation)
                       .name('fwclouds.firewalls.routing.tables.routes.index');
                     router
                       .post('/', RouteController, 'store')
@@ -393,6 +427,7 @@ export class Routes extends RouteCollection {
                     router.prefix('/:route', (router: RouterParser) => {
                       router
                         .get('/', RouteController, 'show')
+                        .operation(consultationOperation)
                         .name('fwclouds.firewalls.routing.tables.routes.show');
                       router
                         .get('/compile', RouteController, 'compile')
@@ -989,7 +1024,7 @@ export class Routes extends RouteCollection {
 
       // ping for keep session alive
       router.prefix('/ping', (router: RouterParser) => {
-        router.put('/', PingController, 'ping').name('ping.pong');
+        router.put('/', PingController, 'ping').operation(sessionOperation).name('ping.pong');
       });
     });
     router.prefix('/profile/tfa', (router: RouterParser) => {
@@ -1008,7 +1043,10 @@ export class Routes extends RouteCollection {
     });
 
     router.prefix('/config', (router: RouterParser) => {
-      router.get('/', FwCloudController, 'getConfig').name('config.get');
+      router
+        .get('/', FwCloudController, 'getConfig')
+        .operation(consultationOperation)
+        .name('config.get');
     });
   }
 }

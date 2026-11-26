@@ -193,6 +193,39 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(2).args[1]).to.contain('start');
     });
 
+    it('returns the API-assigned backup for a coordinated installation', async () => {
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).resolves('');
+      runCommand.onCall(2).resolves('');
+      const result = await ssh.installCoordinatedFirewallPolicy(
+        '/tmp/fwcloud.sh',
+        'fwcloud-20261116123045.sh',
+      );
+      expect(result).to.deep.equal({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: standardScriptPath,
+      });
+      expect(runCommand.firstCall.args[1]).to.contain('fwcloud-20261116123045.sh');
+    });
+
+    it('recovers the specified backup and loads the restored script once', async () => {
+      runCommand.resolves('');
+      await ssh.recoverFirewallPolicy({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: standardScriptPath,
+      });
+      expect(runCommand.callCount).to.equal(2);
+      expect(runCommand.firstCall.args[1]).to.contain(backupPath);
+      expect(runCommand.secondCall.args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('rejects recovery of an invalid backup without executing a command', async () => {
+      await expect(
+        ssh.recoverFirewallPolicy({ backupName: '../fwcloud.sh', scriptPath: standardScriptPath }),
+      ).to.be.rejectedWith('Invalid policy backup');
+      expect(runCommand.called).to.be.false;
+    });
+
     it('restores the exact backup when installing the new policy fails', async () => {
       const installationError = new Error('installation failed');
       runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
@@ -201,7 +234,7 @@ describe(SSHCommunication.name, () => {
       runCommand.onCall(3).resolves('');
 
       await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(
-        installationError,
+        'installation failed',
       );
 
       expect(runCommand.callCount).to.equal(4);
@@ -209,6 +242,45 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(2).args[1]).to.contain(backupPath);
       expect(runCommand.getCall(2).args[1]).to.contain(standardScriptPath);
       expect(runCommand.getCall(3).args[1]).to.contain(`'${standardScriptPath}' start`);
+    });
+
+    it('reports a confirmed recovery after an individual installation fails', async () => {
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).rejects(new Error('installation failed'));
+      runCommand.onCall(2).resolves('');
+      runCommand.onCall(3).resolves('');
+
+      try {
+        await ssh.installFirewallPolicy('/tmp/fwcloud.sh');
+        expect.fail('Expected installation to fail');
+      } catch (error) {
+        expect(error.recoveryStatus).to.equal('restored');
+      }
+    });
+
+    it('reports that no previous policy is available after a first installation fails', async () => {
+      runCommand.onCall(0).resolves('');
+      runCommand.onCall(1).rejects(new Error('installation failed'));
+
+      try {
+        await ssh.installFirewallPolicy('/tmp/fwcloud.sh');
+        expect.fail('Expected installation to fail');
+      } catch (error) {
+        expect(error.recoveryStatus).to.equal('unavailable');
+      }
+    });
+
+    it('reports a failed recovery when restoring the backup fails', async () => {
+      runCommand.onCall(0).resolves(`${backupPathOutputMarker}${backupPath}\n`);
+      runCommand.onCall(1).rejects(new Error('installation failed'));
+      runCommand.onCall(2).rejects(new Error('restore failed'));
+
+      try {
+        await ssh.installFirewallPolicy('/tmp/fwcloud.sh');
+        expect.fail('Expected installation to fail');
+      } catch (error) {
+        expect(error.recoveryStatus).to.equal('failed');
+      }
     });
 
     it('restores the exact backup when loading the new policy fails', async () => {
@@ -219,7 +291,9 @@ describe(SSHCommunication.name, () => {
       runCommand.onCall(3).resolves('');
       runCommand.onCall(4).resolves('');
 
-      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(loadingError);
+      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(
+        'loading failed',
+      );
 
       expect(runCommand.callCount).to.equal(5);
       expect(runCommand.getCall(3).args[1]).to.contain('mv');
@@ -228,7 +302,8 @@ describe(SSHCommunication.name, () => {
       expect(runCommand.getCall(4).args[1]).to.contain(`'${standardScriptPath}' start`);
     });
 
-    it('reports the loading failure before rollback progress', async () => {
+    it('waits one second after reporting a loading failure before rollback', async () => {
+      const clock = sinon.useFakeTimers();
       const loadingError = new Error('loading failed');
       const eventEmitter = new EventEmitter();
       const messages: Array<{ type: string; message: string }> = [];
@@ -239,9 +314,16 @@ describe(SSHCommunication.name, () => {
       runCommand.onCall(3).resolves('');
       runCommand.onCall(4).resolves('');
 
-      await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter)).to.be.rejectedWith(
-        loadingError,
-      );
+      const result = expect(
+        ssh.installFirewallPolicy('/tmp/fwcloud.sh', eventEmitter),
+      ).to.be.rejectedWith('loading failed');
+
+      await clock.tickAsync(999);
+      expect(runCommand.callCount).to.equal(3);
+      expect(messages.some((message) => message.message === 'Restoring previous firewall script.'))
+        .to.be.false;
+      await clock.tickAsync(1);
+      await result;
 
       const failureIndex = messages.findIndex(
         (message) =>
@@ -265,7 +347,7 @@ describe(SSHCommunication.name, () => {
       runCommand.onCall(3).resolves('');
 
       await expect(ssh.installFirewallPolicy('/tmp/fwcloud.sh')).to.be.rejectedWith(
-        installationError,
+        'installation failed',
       );
 
       expect(runCommand.getCall(2).args[1]).to.contain(backupPath);

@@ -131,6 +131,40 @@
         "type": "object",
         "additionalProperties": false
       },
+      "ClusterPolicyNodeDto": {
+        "properties": {
+          "firewallId": {
+            "type": "number",
+            "format": "double"
+          },
+          "sshuser": {
+            "type": "string"
+          },
+          "sshpass": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firewallId"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ClusterPolicyInstallDto": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/ClusterPolicyNodeDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
       "FirewallApiErrorEnvelopeResponse": {
         "properties": {
           "status": {
@@ -486,7 +520,12 @@
           },
           "role": {
             "type": "number",
-            "format": "double"
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "description": "1: Administrator, 2: Manager, 3: Read-only user."
           },
           "allowed_from": {
             "type": "string"
@@ -2279,6 +2318,154 @@
           }
         ],
         "parameters": []
+      }
+    },
+    "/fwclouds/{fwcloud}/clusters/{cluster}/policy/install": {
+      "post": {
+        "operationId": "Install cluster firewall policy",
+        "responses": {
+          "200": {
+            "description": "Cluster policy installation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "response",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "integer"
+                    },
+                    "response": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "success",
+                        "nodes"
+                      ],
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "nodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "firewallId",
+                              "installation",
+                              "recovery"
+                            ],
+                            "properties": {
+                              "firewallId": {
+                                "type": "integer"
+                              },
+                              "installation": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "installed",
+                                  "failed",
+                                  "unknown"
+                                ]
+                              },
+                              "recovery": {
+                                "type": "string",
+                                "enum": [
+                                  "not_needed",
+                                  "restored",
+                                  "failed",
+                                  "unavailable",
+                                  "unknown"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "status": 200,
+                      "response": "OK",
+                      "message": "",
+                      "data": {
+                        "success": false,
+                        "nodes": [
+                          {
+                            "firewallId": 1,
+                            "installation": "installed",
+                            "recovery": "restored"
+                          },
+                          {
+                            "firewallId": 2,
+                            "installation": "failed",
+                            "recovery": "restored"
+                          },
+                          {
+                            "firewallId": 3,
+                            "installation": "pending",
+                            "recovery": "not_needed"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cluster"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fwcloud",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster",
+            "required": true,
+            "schema": {
+              "format": "double",
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterPolicyInstallDto"
+              }
+            }
+          }
+        }
       }
     },
     "/fwclouds/{fwcloud}/firewalls/{firewall}/policyScripts/history": {

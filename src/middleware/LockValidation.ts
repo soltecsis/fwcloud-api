@@ -6,32 +6,33 @@ import { logger } from '../fonaments/abstract-application';
 
 export class LockValidation extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+    if (req.operationPolicy?.requiresCloudLock === false) return next();
+    // Compatibility for routes not yet migrated. Explicit policies take priority,
+    // including an explicit lock requirement on a GET operation.
     if (
-      req.method === 'GET' ||
-      req.url.startsWith('/user') ||
-      req.url.startsWith('/customer') ||
-      req.url.startsWith('/backups') ||
-      req.url.startsWith('/config') ||
-      req.url.startsWith('/openvpnarchives') ||
-      req.url.startsWith('/auditlogarchives') ||
-      req.url.startsWith('/auditlogs') ||
-      req.url.startsWith('/updates') ||
-      req.url.startsWith('/systemctl') ||
-      req.url.startsWith('/profile') ||
-      (req.method === 'POST' && req.url.startsWith('/fwclouds/import')) ||
-      (req.method === 'POST' && req.url.startsWith('/fwclouds') && req.url.endsWith('/export')) ||
-      (req.method === 'PUT' && req.url.endsWith('/get')) ||
-      (req.method === 'PUT' && req.url.endsWith('/where')) ||
-      (req.method === 'POST' && req.url === '/fwclouds') ||
-      (req.method === 'POST' && req.url === '/user/login') ||
-      (req.method === 'POST' && req.url === '/user/logout') ||
-      (req.method === 'PUT' && req.url === '/updates/updater') ||
-      (req.method === 'PUT' && req.url === '/ping') ||
-      (req.method === 'PUT' && req.url === '/fwcloud/lock') ||
-      (req.method === 'PUT' && req.url === '/fwcloud/unlock') ||
-      (req.method === 'PUT' && req.url === '/fwcloud/forcelock') ||
-      (req.method === 'PUT' && req.url === '/aiassistant') ||
-      (req.method === 'DELETE' && req.url === '/aiassistant')
+      req.operationPolicy?.requiresCloudLock !== true &&
+      (req.method === 'GET' ||
+        req.url.startsWith('/user') ||
+        req.url.startsWith('/customer') ||
+        req.url.startsWith('/backups') ||
+        req.url.startsWith('/config') ||
+        req.url.startsWith('/openvpnarchives') ||
+        req.url.startsWith('/auditlogarchives') ||
+        req.url.startsWith('/auditlogs') ||
+        req.url.startsWith('/updates') ||
+        req.url.startsWith('/systemctl') ||
+        req.url.startsWith('/profile') ||
+        (req.method === 'POST' && req.url.startsWith('/fwclouds/import')) ||
+        (req.method === 'POST' && req.url.startsWith('/fwclouds') && req.url.endsWith('/export')) ||
+        (req.method === 'PUT' && req.url.endsWith('/get')) ||
+        (req.method === 'PUT' && req.url.endsWith('/where')) ||
+        (req.method === 'POST' && req.url === '/fwclouds') ||
+        (req.method === 'POST' && req.url === '/user/login') ||
+        (req.method === 'POST' && req.url === '/user/logout') ||
+        (req.method === 'PUT' && req.url === '/updates/updater') ||
+        (req.method === 'PUT' && req.url === '/ping') ||
+        (req.method === 'PUT' && req.url === '/aiassistant') ||
+        (req.method === 'DELETE' && req.url === '/aiassistant'))
     ) {
       return next();
     } else {

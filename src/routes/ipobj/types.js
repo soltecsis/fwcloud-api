@@ -21,14 +21,15 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+var router = createOperationRouter();
 import { IPObjType } from '../../models/ipobj/IPObjType';
+import { consultationOperation } from '../../authorization/operation-policy';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 /* Get all ipobj_types */
-router.get('/', (req, res) => {
+legacyOperation(router, 'get', '/', consultationOperation, (req, res) => {
 	IPObjType.getIpobj_types((error, data) => {
 		if (error) {
       logger().error('Error getting all ipobj_types: ' + JSON.stringify(error));
@@ -43,7 +44,7 @@ router.get('/', (req, res) => {
 });
 
 /* Get  ipobj_type by id */
-router.put('/get', async (req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async (req, res) => {
 	try {
 		const data = await IPObjType.getIpobj_type(req, req.body.id);		
     if (data && data.length > 0)

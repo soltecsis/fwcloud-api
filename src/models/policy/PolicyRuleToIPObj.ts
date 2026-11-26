@@ -1859,7 +1859,7 @@ export class PolicyRuleToIPObj extends Model {
   };
 
   //check if Exist IPOBJS under INTERFACES IN GROUPS
-  public static searchIpobjInterfaceInGroup = (_interface, type) => {
+  public static searchIpobjInterfaceInGroup = (_interface, type, fwcloud) => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1870,7 +1870,9 @@ export class PolicyRuleToIPObj extends Model {
 				INNER JOIN ipobj I ON I.id=O.ipobj
 				INNER JOIN interface K on K.id=I.interface
 				inner join ipobj_type T on T.id=I.type
-				WHERE K.id=${_interface} AND K.interface_type=${type}`;
+				WHERE K.id=${_interface} AND K.interface_type=${type}
+				AND (G.fwcloud=${fwcloud} OR G.fwcloud IS NULL)
+				AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);

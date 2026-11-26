@@ -29,6 +29,25 @@ export type CCDHash = {
   hash: string;
 };
 
+export type PolicyInstallationBackup = {
+  backupName: string;
+  scriptPath: string;
+};
+
+export type PolicyRecoveryStatus = 'restored' | 'failed' | 'unavailable' | 'unknown';
+
+export class PolicyInstallationError extends Error {
+  constructor(
+    message: string,
+    public readonly recoveryStatus: PolicyRecoveryStatus,
+    cause: unknown,
+  ) {
+    super(message);
+    this.name = 'PolicyInstallationError';
+    Object.assign(this, { cause });
+  }
+}
+
 export type OpenVPNHistoryRecord = {
   timestamp: number;
   name: string;
@@ -345,23 +364,22 @@ export abstract class Communication<ConnectionData> {
     channel?: EventEmitter,
   ): Promise<void>;
   abstract readOpenVPNFile(dir: string, name: string): Promise<string>;
-  abstract installFirewallPolicy(
+  abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
+  abstract installCoordinatedFirewallPolicy(
     sourcePath: string,
+    backupName: string,
     eventEmitter?: EventEmitter,
-    crowdSecBackend?: CrowdSecFirewallBackend,
-  ): Promise<string>;
-  async getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]> {
-    throw new Error('Method not implemented');
-  }
-  async getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent> {
-    throw new Error('Method not implemented');
-  }
-  async compareFirewallPolicyScripts(
+  ): Promise<PolicyInstallationBackup | null>;
+  abstract recoverFirewallPolicy(
+    backup: PolicyInstallationBackup,
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract getFirewallPolicyScriptHistory(): Promise<PolicyScriptHistoryEntry[]>;
+  abstract getFirewallPolicyScriptContent(file: string): Promise<PolicyScriptContent>;
+  abstract compareFirewallPolicyScripts(
     file1: string,
     file2: string,
-  ): Promise<PolicyScriptComparison> {
-    throw new Error('Method not implemented');
-  }
+  ): Promise<PolicyScriptComparison>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;

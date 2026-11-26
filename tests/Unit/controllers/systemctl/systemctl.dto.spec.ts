@@ -16,6 +16,8 @@ describe(SystemCtlDto.name, () => {
   it('should accept OpenVPN systemctl service names', async () => {
     expect(await validate(buildDto('openvpn@firewall1'))).to.be.empty;
     expect(await validate(buildDto('openvpn-server@firewall1'))).to.be.empty;
+    expect(await validate(buildDto('openvpn@firewall.example.com-01'))).to.be.empty;
+    expect(await validate(buildDto('openvpn-server@firewall.example.com-01'))).to.be.empty;
   });
 
   it('should accept CrowdSec as a systemctl service name', async () => {
@@ -26,5 +28,13 @@ describe(SystemCtlDto.name, () => {
     const errors = await validate(buildDto('openvpn-server'));
 
     expect(errors.map((error) => error.property)).to.include('service');
+  });
+
+  it('should reject shell characters in OpenVPN service names', async () => {
+    for (const service of ['openvpn@firewall;id', 'openvpn-server@firewall$(id)']) {
+      const errors = await validate(buildDto(service));
+
+      expect(errors.map((error) => error.property)).to.include('service');
+    }
   });
 });

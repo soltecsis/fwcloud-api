@@ -27,6 +27,7 @@ import { Route, RequestHandlerCallback } from './route';
 import { HttpMethod } from './router.service';
 import { FunctionHelper } from '../../../utils/FunctionHelper';
 import * as path from 'path';
+import { OperationPolicy } from '../../../authorization/operation-policy';
 
 export class RouterParser {
   protected _routes: Array<Route>;
@@ -227,6 +228,12 @@ export class RouterParser {
 
   public name(name: string): RouterParser {
     this._currentRoute.setName(name);
+    return this;
+  }
+
+  public operation(policy: OperationPolicy): RouterParser {
+    if (!this._currentRoute) throw new Error('Declare a route before its operation policy');
+    this._currentRoute.setOperationPolicy(policy);
     return this;
   }
 
