@@ -72,6 +72,7 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /backups/import': { audited: true },
   'POST /fwclouds': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/policy/install': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',

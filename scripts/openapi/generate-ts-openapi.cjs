@@ -46,6 +46,45 @@ try {
     spec.info.description = introMarkdown;
   }
 
+  const clusterInstall =
+    spec.paths?.['/fwclouds/{fwcloud}/clusters/{cluster}/policy/install']?.post;
+  if (clusterInstall?.responses?.['200']?.content?.['application/json']) {
+    clusterInstall.responses['200'].content['application/json'].schema = {
+      type: 'object',
+      required: ['status', 'response', 'message', 'data'],
+      properties: {
+        status: { type: 'integer' },
+        response: { type: 'string' },
+        message: { type: 'string' },
+        data: {
+          type: 'object',
+          required: ['success', 'nodes'],
+          properties: {
+            success: { type: 'boolean' },
+            nodes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['firewallId', 'installation', 'recovery'],
+                properties: {
+                  firewallId: { type: 'integer' },
+                  installation: {
+                    type: 'string',
+                    enum: ['pending', 'installed', 'failed', 'unknown'],
+                  },
+                  recovery: {
+                    type: 'string',
+                    enum: ['not_needed', 'restored', 'failed', 'unavailable', 'unknown'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
   fs.writeFileSync(specFile, JSON.stringify(spec, null, 2) + '\n');
 } catch (error) {
   console.error(error);

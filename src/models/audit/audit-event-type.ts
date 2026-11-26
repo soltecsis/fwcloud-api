@@ -62,7 +62,11 @@ export function classifyAuditEvent(
   if (/^\/policy\/compile(?:\/|$)/.test(normalizedPath) || operations === 'compile') {
     return AuditEventType.Compilation;
   }
-  if (/^\/policy\/install(?:\/|$)/.test(normalizedPath) || operations === 'install') {
+  if (
+    /^\/policy\/install(?:\/|$)/.test(normalizedPath) ||
+    operations === 'install' ||
+    operations === 'installclusterpolicy'
+  ) {
     return AuditEventType.Installation;
   }
   if (

@@ -48,4 +48,28 @@ describe('SSH sudo password prompts', () => {
     sinon.assert.notCalled(stream.write);
     expect(await result).to.equal(output);
   });
+
+  it('removes fragmented sudo password feedback without removing script output', async () => {
+    const events = new EventEmitter();
+    const messages: Array<{ message: string }> = [];
+    events.on('message', (message) => messages.push(message));
+    const result = sshTools.runCommand({ password: 'test-password' }, 'sudo true', events);
+    stream.emit('data', Buffer.from('[sudo] Password:'));
+    stream.emit('data', Buffer.from('***'));
+    stream.emit('data', Buffer.from('**\b \b\b \b'));
+    stream.emit('data', Buffer.from('\r\nFWCloud.net\r\n'));
+    stream.emit('close', 0);
+
+    expect(await result).to.contain('FWCloud.net');
+    expect(messages.map((message) => message.message).join('')).not.to.contain('*');
+    expect(messages.map((message) => message.message).join('')).not.to.contain('\b');
+  });
+
+  it('preserves a script banner containing asterisks when sudo prints no feedback', async () => {
+    const result = sshTools.runCommand({ password: 'test-password' }, 'sudo true');
+    stream.emit('data', Buffer.from('[sudo] Password:'));
+    stream.emit('data', Buffer.from('*****\r\n* FILTER TABLE *\r\n'));
+    stream.emit('close', 0);
+    expect(await result).to.equal('*****\r\n* FILTER TABLE *\r\n');
+  });
 });

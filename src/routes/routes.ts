@@ -44,6 +44,7 @@ import { RoutingRuleController } from '../controllers/routing/routing-rule/routi
 import { RoutingGroupController } from '../controllers/routing/routing-group/routing-group.controller';
 import { RouteGroupController } from '../controllers/routing/route-group/route-group.controller';
 import { FirewallController } from '../controllers/firewalls/firewall.controller';
+import { ClusterController } from '../controllers/clusters/cluster.controller';
 import { PolicyRuleController } from '../controllers/policy-rule/policy-rule.controller';
 import { TfaController } from '../controllers/auth/tfa.controller';
 import { CaController } from '../controllers/ca/ca.controller';
@@ -263,6 +264,9 @@ export class Routes extends RouteCollection {
               });
             });
           });
+          router
+            .post('/clusters/:cluster/policy/install', ClusterController, 'installClusterPolicy')
+            .name('fwclouds.clusters.policy.install');
           router.prefix('/firewalls', (router: RouterParser) => {
             router
               .post('/communication/ping', FirewallController, 'pingCommunication')

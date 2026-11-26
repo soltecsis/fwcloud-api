@@ -119,6 +119,8 @@ export default class sshTools {
     let stdout_log = '';
     let stderr_log = '';
     let sudo_pass_sent = cmd.trim().substr(0, 5) === 'sudo ' ? false : true;
+    let waitingForSudoFeedback = false;
+    let sudoFeedback = '';
 
     return new Promise((resolve, reject) => {
       conn
@@ -127,10 +129,23 @@ export default class sshTools {
             if (err) return reject(err);
 
             let prevStr = '';
+            const emitOutput = (str: string) => {
+              if (!str) return;
+              stdout_log += str;
+              if (eventEmitter) {
+                if (prevStr === '\r\n' && str === '\r\n')
+                  eventEmitter.emit('message', new ProgressSSHCmdPayload('\r\n'));
+                else if (str !== '\r\n')
+                  eventEmitter.emit('message', new ProgressSSHCmdPayload(str));
+                prevStr = str;
+              }
+            };
 
             stream
               .on('close', (code, signal) => {
                 //console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                if (waitingForSudoFeedback && !sudoFeedback.includes('\b'))
+                  emitOutput(sudoFeedback);
                 conn.end();
                 if (code === 0) resolve(stdout_log);
                 else reject(new Error('STDOUT: \n' + stdout_log + '\n\nSTDERR: \n' + stderr_log));
@@ -142,16 +157,21 @@ export default class sshTools {
                 if (!sudo_pass_sent && isSudoPasswordPrompt(str)) {
                   stream.write(SSHconn.password + '\n');
                   sudo_pass_sent = true;
+                  waitingForSudoFeedback = true;
                 } else {
-                  stdout_log += data;
-                  if (eventEmitter) {
-                    if (prevStr === '\r\n' && str === '\r\n')
-                      // Blanc line
-                      eventEmitter.emit('message', new ProgressSSHCmdPayload('\r\n'));
-                    else if (str != '\r\n')
-                      eventEmitter.emit('message', new ProgressSSHCmdPayload(str));
-
-                    prevStr = str;
+                  if (waitingForSudoFeedback) {
+                    sudoFeedback += str;
+                    const outputIndex = sudoFeedback.search(/[^*\b \r\n]/);
+                    if (outputIndex === -1) return;
+                    const prefix = sudoFeedback.slice(0, outputIndex);
+                    emitOutput(
+                      (prefix.includes('\b') ? prefix.replace(/[\x08*]/g, '') : prefix) +
+                        sudoFeedback.slice(outputIndex),
+                    );
+                    sudoFeedback = '';
+                    waitingForSudoFeedback = false;
+                  } else {
+                    emitOutput(str);
                   }
                 }
               })

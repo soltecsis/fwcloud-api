@@ -29,6 +29,8 @@ import {
   OpenVPNStatusSamplingAgentConfig,
   OpenVPNStatusSamplingAgentState,
   PluginInstallOptions,
+  PolicyInstallationBackup,
+  PolicyInstallationError,
   PolicyScriptComparison,
   PolicyScriptContent,
   PolicyScriptHistoryEntry,
@@ -150,6 +152,75 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         .forEach((item) => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
       return 'DONE';
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.data?.recovery_status : undefined;
+      if (status === 'restored' || status === 'failed' || status === 'unavailable') {
+        const message = error.response?.data?.message || error.message;
+        throw new PolicyInstallationError(message, status, error);
+      }
+      this.handleRequestException(error, eventEmitter);
+    }
+  }
+
+  async installCoordinatedFirewallPolicy(
+    scriptPath: string,
+    backupName: string,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<PolicyInstallationBackup | null> {
+    if (!/^fwcloud-[0-9]{14}\.sh$/.test(backupName)) {
+      throw new Error('Invalid policy backup name');
+    }
+    try {
+      const form = new FormData();
+      form.append('dst_dir', './tmp');
+      form.append('perms', 700);
+      form.append('backup_name', backupName);
+      form.append('upload', fs.createReadStream(scriptPath));
+      form.append('ws_id', await this.createWebSocket(eventEmitter));
+      eventEmitter.emit(
+        'message',
+        new ProgressInfoPayload(`Uploading firewall policy (${this.connectionData.host})`),
+      );
+      const config: AxiosRequestConfig = {
+        ...this.config,
+        timeout: 0,
+        headers: { ...this.config.headers, ...form.getHeaders() },
+      };
+      const response = await axios.post(`${this.url}/api/v1/fwcloud_script/upload`, form, config);
+      const result = response.data;
+      if (result?.backup_name === null && result?.script_path === null) return null;
+      if (result?.backup_name !== backupName || typeof result?.script_path !== 'string') {
+        throw new Error('Unexpected coordinated policy installation response');
+      }
+      return { backupName, scriptPath: result.script_path };
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.data?.recovery_status : undefined;
+      const recoveryStatus =
+        status === 'restored' || status === 'failed' || status === 'unavailable'
+          ? status
+          : 'unknown';
+      throw new PolicyInstallationError(error.message, recoveryStatus, error);
+    }
+  }
+
+  async recoverFirewallPolicy(
+    backup: PolicyInstallationBackup,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<void> {
+    try {
+      const response = await axios.post(
+        `${this.url}/api/v1/fwcloud_script/recover`,
+        {
+          backup_name: backup.backupName,
+          script_path: backup.scriptPath,
+        },
+        { ...this.config, timeout: 0 },
+      );
+      if (typeof response.data === 'string' && response.data) {
+        response.data
+          .split('\n')
+          .forEach((line) => eventEmitter.emit('message', new ProgressSSHCmdPayload(line)));
+      }
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
