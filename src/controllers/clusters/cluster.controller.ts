@@ -113,12 +113,17 @@ export class ClusterController extends Controller {
           throw new HttpException('SSH credentials are required for every SSH node', 400);
         nodes.push({
           firewallId: firewall.id,
+          firewallName: firewall.name,
           communication: await firewall.getCommunication({ sshuser, sshpassword }),
         });
       } else if (firewall.install_communication === FirewallInstallCommunication.Agent) {
         if (!firewall.install_apikey || !firewallUtils.decrypt(firewall.install_apikey))
           throw new HttpException('An API key is required for every agent node', 400);
-        nodes.push({ firewallId: firewall.id, communication: await firewall.getCommunication() });
+        nodes.push({
+          firewallId: firewall.id,
+          firewallName: firewall.name,
+          communication: await firewall.getCommunication(),
+        });
       } else {
         throw new HttpException('Unsupported firewall communication method', 400);
       }

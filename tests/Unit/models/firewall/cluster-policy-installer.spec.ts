@@ -33,6 +33,38 @@ describe('cluster policy installation', () => {
     expect(first.recover.called || second.recover.called).to.be.false;
   });
 
+  it('waits half a second between nodes before announcing and starting the next installation', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      const first = node(1);
+      const second = node(2);
+      const events = new EventEmitter();
+      const messages: Array<{ message: string }> = [];
+      events.on('message', (message) => messages.push(message));
+      const installation = installClusterPolicy([first, second], '/tmp/fwcloud.sh', events);
+
+      await clock.tickAsync(499);
+      expect(first.install.calledOnce).to.be.true;
+      expect(second.install.called).to.be.false;
+      expect(messages.some((message) => message.message.includes('node 2'))).to.be.false;
+      await clock.tickAsync(1);
+      await installation;
+      expect(second.install.calledOnce).to.be.true;
+      expect(messages.some((message) => message.message.includes('node 2'))).to.be.true;
+    } finally {
+      clock.restore();
+    }
+  });
+
+  it('identifies nodes by name in progress messages', async () => {
+    const first = { ...node(42), firewallName: 'Node Alpha' };
+    const events = new EventEmitter();
+    const messages: Array<{ message: string }> = [];
+    events.on('message', (message) => messages.push(message));
+    await installClusterPolicy([first], '/tmp/fwcloud.sh', events);
+    expect(messages[0].message).to.equal('Installing firewall policy on node Node Alpha.');
+  });
+
   it('preserves an arbitrary supplied order and waits for each node before starting the next', async () => {
     const first = node(30);
     const second = node(10);
@@ -104,6 +136,7 @@ describe('cluster policy installation', () => {
       failing.install.rejects(new Error('node unavailable'));
 
       const installation = installClusterPolicy([first, failing], '/tmp/fwcloud.sh', events);
+      await clock.tickAsync(500);
       await clock.tickAsync(999);
       expect(
         messages.some((message) => message.type === 'error' && message.message.includes('node 2')),

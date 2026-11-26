@@ -9,6 +9,7 @@ import { ProgressErrorPayload, ProgressInfoPayload } from '../../sockets/message
 
 export type ClusterPolicyNode = {
   firewallId: number;
+  firewallName?: string;
   communication: Communication<unknown>;
 };
 
@@ -51,11 +52,16 @@ export async function installClusterPolicy(
   }> = [];
 
   for (let index = 0; index < nodes.length; index++) {
+    if (index > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
+    }
     const node = nodes[index];
     const result = results[index];
     events.emit(
       'message',
-      new ProgressInfoPayload(`Installing firewall policy on node ${node.firewallId}.`),
+      new ProgressInfoPayload(
+        `Installing firewall policy on node ${node.firewallName || node.firewallId}.`,
+      ),
     );
     try {
       const backup = await node.communication.installCoordinatedFirewallPolicy(
@@ -73,7 +79,9 @@ export async function installClusterPolicy(
       result.recovery = error instanceof PolicyInstallationError ? error.recoveryStatus : 'unknown';
       events.emit(
         'message',
-        new ProgressErrorPayload(`Firewall policy installation failed on node ${node.firewallId}.`),
+        new ProgressErrorPayload(
+          `Firewall policy installation failed on node ${node.firewallName || node.firewallId}.`,
+        ),
       );
 
       if (installed.some((previous) => previous.backup)) {
@@ -88,7 +96,7 @@ export async function installClusterPolicy(
         events.emit(
           'message',
           new ProgressInfoPayload(
-            `Restoring previous firewall policy on node ${previous.node.firewallId}.`,
+            `Restoring previous firewall policy on node ${previous.node.firewallName || previous.node.firewallId}.`,
           ),
         );
         try {
@@ -99,7 +107,7 @@ export async function installClusterPolicy(
           events.emit(
             'message',
             new ProgressErrorPayload(
-              `Firewall policy recovery could not be confirmed on node ${previous.node.firewallId}.`,
+              `Firewall policy recovery could not be confirmed on node ${previous.node.firewallName || previous.node.firewallId}.`,
             ),
           );
         }
