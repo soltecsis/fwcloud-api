@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Requests answered with a confirmation token challenge are now identified in audit logs and can be excluded from the list with `exclude_confirmation_token_requests=true`.
 - Audit log list and detail responses include the nullable `eventType`, `outcome` and `confirmationTokenChallenge` fields. Historical records keep these values as null.
 - Policy rule copy (`PUT /policy/rule/copy`) and move (`PUT /policy/rule/move`) accept an optional `idgroup` with the destination group. When it is omitted, rules join the group of `pasteOnRuleId` as before. `null` places them outside any group, immediately above or below a group when its first or last rule is the reference. The group must border the insertion point: unknown groups or groups of other firewalls return "Not found", and values that would split a group return "Not allowed".
+- Authorized users can download a CSV list of configured clients for an OpenVPN, WireGuard or IPSec server, with each client's name, configured IP addresses and group memberships, including groups inherited through IP objects or matching VPN prefixes.
 
 ### Changed
 - Route operation policies now control read-only access, confirmation token requirements and FWCloud locking independently. Permitted consultations do not acquire locks or require confirmation tokens, and tree queries no longer initialize missing data.
