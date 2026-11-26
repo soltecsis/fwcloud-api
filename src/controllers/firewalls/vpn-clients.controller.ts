@@ -27,7 +27,7 @@ export class VPNClientsController extends Controller {
     const source = db.getSource();
     const user = await source.manager.getRepository(User).findOneOrFail({
       where: { id: req.session.user.id },
-      relations: ['fwClouds'],
+      relations: { fwClouds: true },
     });
     (user.role === 1 || user.fwClouds.some((cloud) => cloud.id === fwcloud)
       ? Authorization.grant()
