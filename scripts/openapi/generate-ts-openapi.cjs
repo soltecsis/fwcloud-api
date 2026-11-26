@@ -46,7 +46,8 @@ try {
     spec.info.description = introMarkdown;
   }
 
-  const clusterInstall = spec.paths?.['/fwclouds/{fwcloud}/clusters/{cluster}/policy/install']?.post;
+  const clusterInstall =
+    spec.paths?.['/fwclouds/{fwcloud}/clusters/{cluster}/policy/install']?.post;
   if (clusterInstall?.responses?.['200']?.content?.['application/json']) {
     clusterInstall.responses['200'].content['application/json'].schema = {
       type: 'object',
@@ -67,8 +68,14 @@ try {
                 required: ['firewallId', 'installation', 'recovery'],
                 properties: {
                   firewallId: { type: 'integer' },
-                  installation: { type: 'string', enum: ['pending', 'installed', 'failed', 'unknown'] },
-                  recovery: { type: 'string', enum: ['not_needed', 'restored', 'failed', 'unavailable', 'unknown'] },
+                  installation: {
+                    type: 'string',
+                    enum: ['pending', 'installed', 'failed', 'unknown'],
+                  },
+                  recovery: {
+                    type: 'string',
+                    enum: ['not_needed', 'restored', 'failed', 'unavailable', 'unknown'],
+                  },
                 },
               },
             },
