@@ -21,8 +21,9 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 
 import { Mark } from '../../models/ipobj/Mark';
 import { Firewall } from '../../models/firewall/Firewall';
@@ -115,7 +116,7 @@ router.put('/', async (req, res) => {
 /**
  * Get mark data.
  */
-router.put('/get', async(req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async(req, res) => {
 	try {
 		const data = await Mark.getMark(req.dbCon,req.body.mark);
 		res.status(200).json(data);
@@ -149,7 +150,7 @@ async (req, res) => {
 router.put('/restricted', restrictedCheck.mark, (req, res) => res.status(204).end());
 
 
-router.put('/where', async (req, res) => {
+legacyOperation(router, 'put', '/where', consultationOperation, async (req, res) => {
 	try {
 		const data = await Mark.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
 		if (data.result)

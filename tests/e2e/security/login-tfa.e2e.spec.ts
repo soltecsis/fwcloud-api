@@ -28,16 +28,60 @@ describe('Security: optional persisted 2FA during real login', () => {
   });
   afterEach(() => clock?.restore());
 
-  for (const kind of ['absent', 'wrong']) {
-    it(`rejects an ${kind} code without leaving an authenticated session`, async () => {
-      const agent = request.agent(testSuite.app.express);
-      const call = agent.post('/user/login').send(loginPayload(account));
-      if (kind === 'wrong') call.set('x-tfa', 'invalid-code');
-      const response = await call.expect(401);
-      expect(response.body.fwcErr).to.eq(1001);
-      await agent.get('/config').expect(400);
+  const validCode = () => speakeasy.totp({ secret, encoding: 'base32' });
+  const startLogin = (agent: ReturnType<typeof request.agent>) =>
+    agent.post('/user/login').send(loginPayload(account)).expect(401);
+
+  it('starts a challenge without revealing identity or granting protected access', async () => {
+    const agent = request.agent(testSuite.app.express);
+    const first = await startLogin(agent);
+    expect(first.body).to.deep.eq({
+      fwcErr: 1001,
+      msg: 'Bad username or password',
+      mfaRequired: true,
     });
-  }
+    await agent.get('/config').expect(400);
+
+    const second = await agent.post('/user/login').send({ authCode: validCode() }).expect(200);
+    expect(second.body.user).to.eq(account.user.id);
+    expect(second.headers['set-cookie'][0].split(';')[0]).not.to.eq(
+      first.headers['set-cookie'][0].split(';')[0],
+    );
+    await agent.get('/config').expect(200);
+  });
+
+  it('rejects a code submitted without the pending session cookie', async () => {
+    await startLogin(request.agent(testSuite.app.express));
+    await request(testSuite.app.express)
+      .post('/user/login')
+      .send({ authCode: validCode() })
+      .expect(401);
+  });
+
+  it('rejects an expired challenge even with a current code', async () => {
+    const agent = request.agent(testSuite.app.express);
+    await startLogin(agent);
+    clock.setSystemTime(Date.now() + 5 * 60 * 1000);
+    await agent.post('/user/login').send({ authCode: validCode() }).expect(401);
+    await agent.get('/config').expect(400);
+  });
+
+  it('rejects an incorrect code and discards the pending login', async () => {
+    const agent = request.agent(testSuite.app.express);
+    await startLogin(agent);
+    const wrong = validCode() === '000000' ? '111111' : '000000';
+    await agent.post('/user/login').send({ authCode: wrong }).expect(401);
+    await agent.post('/user/login').send({ authCode: validCode() }).expect(401);
+    await agent.get('/config').expect(400);
+  });
+
+  it('does not reveal 2FA status when the password is invalid', async () => {
+    const response = await request(testSuite.app.express)
+      .post('/user/login')
+      .send({ ...loginPayload(account), password: 'synthetic-invalid-password' })
+      .expect(401);
+    expect(response.body).not.to.have.property('mfaRequired');
+  });
 
   it('accepts a valid header TOTP and permits protected access without returning its secret', async () => {
     const agent = request.agent(testSuite.app.express);

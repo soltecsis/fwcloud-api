@@ -51,7 +51,8 @@ interface LegacyUserUpsertRequest {
   username: string;
   password: string;
   enabled: number;
-  role: number;
+  /** 1: Administrator, 2: Manager, 3: Read-only user. */
+  role: 1 | 2 | 3;
   allowed_from: string;
 }
 

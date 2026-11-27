@@ -31,10 +31,11 @@ import { logger } from '../fonaments/abstract-application';
 import console from 'console';
 import fwcError from './error_table';
 import { allow } from 'joi';
+import { PathHelper } from './path-helpers';
 const config = require('../config/config');
 var crypto = require('crypto');
-const fs = require('fs');
-var path = require('path');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 
 
 utilsModel.isEmptyObject = (obj) => {
@@ -238,115 +239,70 @@ utilsModel.getDbConnection = () => {
 	});
 };
 
-utilsModel.createBackupDataDir = backupId => {
-	return new Promise(async (resolve, reject) => {
-		var path = '';
-		try {
-			path = config.get('backup').data_dir;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
+function dataDirectoryId(value) {
+	if (typeof value === 'string' && /^\d+$/.test(value)) value = Number(value);
+	if (!Number.isSafeInteger(value) || value < 1) throw new Error('Invalid data directory ID');
+	return value;
+}
 
-			path += "/" + backupId;
-			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
-			fs.mkdirSync(path);
+function firewallDataDir(fwcloud, firewall) {
+	return PathHelper.dataDirectory(config.get('policy').data_dir, dataDirectoryId(fwcloud), dataDirectoryId(firewall));
+}
 
-			resolve();
-		} catch (error) { reject(error) }
-	});
+async function resetDataDirectory(directory) {
+	await fs.rm(directory, { recursive: true, force: true });
+	await fs.mkdir(directory, { recursive: true });
+}
+
+utilsModel.createBackupDataDir = async backupId => {
+	const directory = await PathHelper.dataDirectory(config.get('backup').data_dir, backupId);
+	await resetDataDirectory(directory);
 };
 
-utilsModel.removeFwcloudDataDir = fwcloud => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			await utilsModel.deleteFolder(config.get('policy').data_dir + '/' + fwcloud);
-			await utilsModel.deleteFolder(config.get('pki').data_dir + '/' + fwcloud);
-			await utilsModel.deleteFolder(config.get('snapshot').data_dir + '/' + fwcloud);
-			resolve();
-		} catch (error) { reject(error) }
-	});
+utilsModel.removeFwcloudDataDir = async fwcloud => {
+	const id = dataDirectoryId(fwcloud);
+	const directories = await Promise.all(['policy', 'pki', 'snapshot'].map(area =>
+		PathHelper.dataDirectory(config.get(area).data_dir, id)
+	));
+	for (const directory of directories) {
+		await fs.rm(directory, { recursive: true, force: true });
+	}
 };
 
-utilsModel.createFirewallDataDir = (fwcloud, fwId) => {
-	return new Promise(async (resolve, reject) => {
-		var path = '';
-		try {
-			path = config.get('policy').data_dir;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
-			path += "/" + fwcloud;
-			if (!fs.existsSync(path))
-				fs.mkdirSync(path);
-			path += "/" + fwId;
-			await utilsModel.deleteFolder(path); // Make sure that folder doesn't already exists.
-			fs.mkdirSync(path);
-
-			resolve();
-		} catch (error) { reject(error) }
-	});
+utilsModel.createFirewallDataDir = async (fwcloud, firewall) => {
+	await resetDataDirectory(await firewallDataDir(fwcloud, firewall));
 };
 
-utilsModel.renameFirewallDataDir = (fwcloud, fwIdOld, fwIdNew) => {
-	return new Promise((resolve, reject) => {
-		const dir_old = config.get('policy').data_dir + '/' + fwcloud + '/' + fwIdOld;
-		const dir_new = config.get('policy').data_dir + '/' + fwcloud + '/' + fwIdNew;
-		try {
-
-			fs.stat(dir_old, (err, stat) => {
-				if (err) {
-					return reject(err);
-				}
-
-				if (stat.isDirectory()) {
-					fs.renameSync(dir_old, dir_new);
-				}
-
-				resolve();
-			})
-
-			resolve();
-		} catch (error) { reject(error) }
-	});
+utilsModel.removeFirewallDataDir = async (fwcloud, firewall) => {
+	const directory = await firewallDataDir(fwcloud, firewall);
+	await fs.rm(directory, { recursive: true, force: true });
 };
 
-
-utilsModel.deleteFile = (dir, file) => {
-	return new Promise((resolve, reject) => {
-		var filePath = path.join(dir, file);
-		fs.lstat(filePath, (err, stats) => {
-			if (err) {
-				if (err.code === "ENOENT") return resolve();
-				return reject(err);
-			}
-			if (stats.isDirectory())
-				resolve(utilsModel.deleteFolder(filePath));
-			else {
-				fs.unlink(filePath, err => {
-					if (err) return reject(err);
-					resolve();
-				});
-			}
-		});
-	});
+utilsModel.renameFirewallDataDir = async (fwcloud, fwIdOld, fwIdNew) => {
+	const oldDirectory = await firewallDataDir(fwcloud, fwIdOld);
+	const newDirectory = await firewallDataDir(fwcloud, fwIdNew);
+	try {
+		await fs.rename(oldDirectory, newDirectory);
+	} catch (error) {
+		if (error.code !== 'ENOENT') throw error;
+	}
 };
 
-utilsModel.deleteFolder = dir => {
-	return new Promise((resolve, reject) => {
-		fs.access(dir, err => {
-			if (err) {
-				if (err.code === "ENOENT") return resolve();
-				return reject(err);
-			}
-			fs.readdir(dir, (err, files) => {
-				if (err) return reject(err);
-				Promise.all(files.map(file => { return utilsModel.deleteFile(dir, file) }))
-					.then(() => {
-						fs.rmdir(dir, err => {
-							if (err) return reject(err);
-							resolve();
-						});
-					})
-					.catch(err => reject(err));
-			});
-		});
-	});
+utilsModel.getCaDataDir = async (fwcloud, ca) => {
+	return PathHelper.dataDirectory(config.get('pki').data_dir, dataDirectoryId(fwcloud), dataDirectoryId(ca));
+};
+
+utilsModel.removeCaDataDir = async (fwcloud, ca) => {
+	const directory = await utilsModel.getCaDataDir(fwcloud, ca);
+	await fs.rm(directory, { recursive: true, force: true });
+};
+
+utilsModel.deleteFile = async (root, directory, file) => {
+	const fileName = PathHelper.dataPathSegment(file);
+	const parent = await PathHelper.dataDirectory(root, directory);
+	try {
+		await fs.unlink(path.join(parent, fileName));
+	} catch (error) {
+		if (error.code !== 'ENOENT') throw error;
+	}
 };

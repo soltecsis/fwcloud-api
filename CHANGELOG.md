@@ -21,17 +21,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Read-only users (`role: 3`, Viewer) can be created or assigned by administrators and consult explicitly permitted endpoints for their assigned FWClouds. Requests to modify data, manage locks or access unclassified endpoints return HTTP 403.
 - Audit log events are classified by category (`compilation`, `installation`, `creation`, `modification`, `deletion`, `login`, `logout` and `other`), and the audit log list can be filtered by one or more categories with the `event_type` query parameter. Unsupported or empty values return HTTP 422.
 - Login and logout requests are now recorded as authentication events with a `success` or `failure` outcome, excluding credentials, request bodies and session cookies. Failed logins are stored without user or session references.
 - Audit logs can be sorted by start or end time, in ascending or descending order, with the `sort_by` (`start`, `end`) and `sort_order` (`asc`, `desc`) query parameters, including cursor pagination. Events without a known end time are listed last.
 - Requests answered with a confirmation token challenge are now identified in audit logs and can be excluded from the list with `exclude_confirmation_token_requests=true`.
 - Audit log list and detail responses include the nullable `eventType`, `outcome` and `confirmationTokenChallenge` fields. Historical records keep these values as null.
 - Policy rule copy (`PUT /policy/rule/copy`) and move (`PUT /policy/rule/move`) accept an optional `idgroup` with the destination group. When it is omitted, rules join the group of `pasteOnRuleId` as before. `null` places them outside any group, immediately above or below a group when its first or last rule is the reference. The group must border the insertion point: unknown groups or groups of other firewalls return "Not found", and values that would split a group return "Not allowed".
+- Authorized users can download a CSV list of configured clients for an OpenVPN, WireGuard or IPSec server, with each client's name, configured IP addresses and group memberships, including groups inherited through IP objects or matching VPN prefixes.
 
 ### Changed
+- Route operation policies now control read-only access, confirmation token requirements and FWCloud locking independently. Permitted consultations do not acquire locks or require confirmation tokens, and tree queries no longer initialize missing data.
 - A new database migration adds the audit log category, outcome and confirmation token challenge columns, and backfills missing durations of historical records from their stored payloads.
 
 ### Fixed
+- FWCloud lock acquisition is now atomic, lock release only affects locks owned by the requesting session, and expiration checks preserve locks transferred or renewed concurrently.
+- Confirmation token checks are restored for routes without an explicit operation policy, preserving the existing exemptions for consultation and session endpoints.
 - Negative, non-numeric or out-of-range audit log durations are now ignored instead of being reported as zero.
 - Moving several policy rules keeps them together in policy order, also when moving them below a rule, and applies the move in a single transaction, so a failure leaves positions and group membership unchanged. Rules of another policy type than the destination rule are rejected, as for copies, and groups emptied by a move with offset 0 are removed, as with the other offsets.
 

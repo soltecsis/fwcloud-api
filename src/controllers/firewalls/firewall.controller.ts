@@ -247,8 +247,8 @@ export class FirewallController extends Controller {
     @Path('firewall') firewallId: number,
   ): Promise<ResponseBuilder> {
     const firewall = await this.getPolicyScriptFirewall(
-      parseInt(String(request.params.fwcloud)),
-      parseInt(String(request.params.firewall)),
+      Number.parseInt(String(request.params.fwcloud)),
+      Number.parseInt(String(request.params.firewall)),
     );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 
@@ -297,8 +297,8 @@ export class FirewallController extends Controller {
   ): Promise<ResponseBuilder> {
     const input = this.getBody(request, requestBody);
     const firewall = await this.getPolicyScriptFirewall(
-      parseInt(String(request.params.fwcloud)),
-      parseInt(String(request.params.firewall)),
+      Number.parseInt(String(request.params.fwcloud)),
+      Number.parseInt(String(request.params.firewall)),
     );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 
@@ -334,8 +334,8 @@ export class FirewallController extends Controller {
   ): Promise<ResponseBuilder> {
     const input = this.getBody(request, requestBody);
     const firewall = await this.getPolicyScriptFirewall(
-      parseInt(String(request.params.fwcloud)),
-      parseInt(String(request.params.firewall)),
+      Number.parseInt(String(request.params.fwcloud)),
+      Number.parseInt(String(request.params.firewall)),
     );
     (await FirewallPolicy.history(firewall, request.session.user)).authorize();
 

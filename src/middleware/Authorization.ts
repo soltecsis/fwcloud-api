@@ -34,6 +34,10 @@ export class Authorization extends Middleware {
     if (req.method === 'POST' && req.path === '/user/login') {
       return next();
     }
+    if (req.session?.pendingLogin) {
+      res.status(400).json(fwcError.SESSION_BAD);
+      return;
+    }
 
     /////////////////////////////////////////////////////////////////////////////////
     // WARNING!!!!: If you enable the next two code lines, then you disable

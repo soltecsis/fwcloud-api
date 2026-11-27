@@ -21,8 +21,9 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { In } from 'typeorm';
@@ -114,7 +115,7 @@ async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type */
-router.put('/type/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null);
 		res.status(200).json(policy);
@@ -125,7 +126,7 @@ router.put('/type/get', async (req, res) => {
 });
 
 /* Get policy rules by firewall type and rules group */
-router.put('/type/ingroup/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/ingroup/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, req.body.idgroup);
 		res.status(200).json(policy);
@@ -136,7 +137,7 @@ router.put('/type/ingroup/get', async (req, res) => {
 });
 
 /* Get all policy_rs by firewall and type but don't expand group contents */
-router.put('/type/grouped/get', async (req, res) => {
+legacyOperation(router, 'put', '/type/grouped/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null, true);
 		res.status(200).json(policy);
@@ -148,7 +149,7 @@ router.put('/type/grouped/get', async (req, res) => {
 
 
 /* Get all policy_rs by firewall and type and Rule */
-router.put('/get', async (req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async (req, res) => {
 	try {
 		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, [req.body.rule], null);
 		//If exists policy_r get data
@@ -302,5 +303,120 @@ async (req, res) => {
 		res.status(400).json(error);
 	}
 });
+
+function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			// Get rule data of rule over which we are running the copy action (up or down of this rule).
+			const pasteOnRule = await PolicyRule.getPolicy_r(dbCon, firewall, pasteOnRuleId);
+			const copyRule = await PolicyRule.getPolicy_r(dbCon, firewall, rule);
+			let new_order, newRuleId;
+
+			// We can not copy the Catch-All special rule.
+			if (copyRule.special===2) throw(fwcError.NOT_ALLOWED);
+			// It is not possible to copy rules under the Catch-All special rule.
+			if (pasteOnRule.special===2 && pasteOffset===1) throw(fwcError.NOT_ALLOWED);
+
+			if (pasteOffset===1)
+				new_order = await PolicyRule.makeAfterRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
+			else
+				new_order = await PolicyRule.makeBeforeRuleOrderGap(firewall, copyRule.type, pasteOnRuleId);
+
+			//Create New objet with data policy_r
+			var policy_rData = {
+				id: null,
+				idgroup: pasteOnRule.idgroup,
+				firewall: copyRule.firewall,
+				rule_order: new_order,
+				action: copyRule.action,
+				time_start: copyRule.time_start,
+				time_end: copyRule.time_end,
+				active: copyRule.active,
+				options: copyRule.options,
+				comment: copyRule.comment,
+				type: copyRule.type,
+				style: copyRule.style,
+				fw_apply_to: copyRule.fw_apply_to,
+				negate: copyRule.negate,
+				mark: copyRule.mark,
+				run_before: copyRule.run_before,
+				run_after: copyRule.run_after,
+				special: copyRule.special
+			};
+			newRuleId = await PolicyRule.insertPolicy_r(policy_rData);
+
+			//DUPLICATE RULE POSITONS O (OBJECTS)
+			await PolicyRuleToIPObj.duplicatePolicy_r__ipobj(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS I (INTERFACES)
+			await PolicyRuleToInterface.duplicatePolicy_r__interface(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR OpenVPN OBJECTS
+			await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR PREFIX OBJECTS
+			await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR WireGuard OBJECTS
+			await PolicyRuleToWireGuard.duplicatePolicy_r__wireGuard(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITONS FOR WIREGUARD PREFIXES
+			await PolicyRuleToWireGuardPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITIONS FOR IPSec OBJECTS
+			await PolicyRuleToIPSec.duplicatePolicy_r__ipsec(dbCon, rule, newRuleId);
+			//DUPLICATE RULE POSITIONS FOR IPSec PREFIXES
+			await PolicyRuleToIPSecPrefix.duplicatePolicy_r__prefix(dbCon, rule, newRuleId);
+
+			resolve(newRuleId);
+		} catch(error) { return reject(error) }
+	});
+}
+
+async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			// Get rule data of rule over which we are running the move action (up or down of this rule).
+			const pasteOnRule = await PolicyRule.getPolicy_r(dbCon, firewall, pasteOnRuleId);
+			// Get rule data for the rule we are moving.
+			const moveRule = await PolicyRule.getPolicy_r(dbCon, firewall, rule);
+			let new_order;
+
+			// We can not move the Catch-All special rule.
+			if (moveRule.special === 2) throw (fwcError.NOT_ALLOWED);
+			// It is not possible to move rules under the Catch-All special rule.
+			if (pasteOnRule.special === 2 && pasteOffset === 1) throw (fwcError.NOT_ALLOWED);
+
+			if (pasteOffset === 1)
+				new_order = await PolicyRule.makeAfterRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
+			else if (pasteOffset === -1)
+				new_order = await PolicyRule.makeBeforeRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
+			else // Move rule into group.
+				new_order = moveRule.rule_order;
+
+			//Update the moved rule data
+			const policy_rData = {
+				id: rule,
+				idgroup: pasteOnRule.idgroup,
+				rule_order: new_order
+			};
+			await PolicyRule.updatePolicy_r(dbCon, policy_rData);
+
+
+			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
+			const policyGroupRepository = new PolicyGroupRepository(db.getSource().manager);
+			
+			if (pasteOffset != 0 && moveRule.idgroup) {
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}});
+				if (policyGroup) {
+					await policyGroupRepository.deleteIfEmpty(policyGroup);
+				}
+			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
+				const policyGroup = await policyGroupRepository.findOne({where: {id: moveRule.idgroup}}, { relations: { policyRules: true } });
+				if (policyGroup.policyRules && policyGroup.policyRules.length < 1) {
+					await policyGroupRepository.delete({ id: policyGroup.id });
+				}
+			}
+
+			resolve();
+		} catch (error) { 
+			return reject(error)
+		}
+	});
+}
 
 module.exports = router;

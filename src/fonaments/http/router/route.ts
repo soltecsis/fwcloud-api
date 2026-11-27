@@ -29,6 +29,7 @@ import { AbstractApplication, app } from '../../abstract-application';
 import { ParamNotValidException } from './exceptions/param-not-valid.exception';
 import { ParamMissingException } from './exceptions/param-missing.exception';
 import { HTTPApplication } from '../../http-application';
+import { OperationPolicy } from '../../../authorization/operation-policy';
 
 export class ControllerHandlerSignature {
   controller: typeof Controller;
@@ -48,6 +49,16 @@ export class Route {
   protected _validator?: any; //TODO
   protected _gates: Array<typeof Gate>;
   protected _name: string;
+  protected _operationPolicy?: Readonly<OperationPolicy>;
+
+  get operationPolicy(): Readonly<OperationPolicy> | undefined {
+    return this._operationPolicy;
+  }
+
+  public setOperationPolicy(policy: OperationPolicy): Route {
+    this._operationPolicy = Object.freeze({ ...policy });
+    return this;
+  }
 
   constructor() {
     this._httpMethod = null;

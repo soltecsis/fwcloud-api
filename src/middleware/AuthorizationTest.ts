@@ -43,6 +43,7 @@ export class AuthorizationTest extends Middleware {
     }
 
     try {
+      if (req.session?.pendingLogin) throw new AuthorizationException();
       if (req.headers.cookie) {
         const fwcloudCookie = this.getFwCloudCookie(req.headers.cookie);
 

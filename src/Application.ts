@@ -81,6 +81,8 @@ import { DHCPGroupServiceProvider } from './models/system/dhcp/dhcp_g/dhcp_g.pro
 import { KeepalivedGroupServiceProvider } from './models/system/keepalived/keepalived_g/keepalived_g.provider';
 import { KeepalivedRuleServiceProvider } from './models/system/keepalived/keepalived_r/keepalived_r.provider';
 import { LockValidation } from './middleware/LockValidation';
+import { ResolveOperation } from './middleware/ResolveOperation';
+import { ReadOnlyValidation } from './middleware/ReadOnlyValidation';
 import { RestrictedMiddleware } from './middleware/restricted.middleware';
 import { WireGuardPrefixServiceProvider } from './models/vpn/wireguard/wireguard-prefix.provider';
 import { WireGuardServiceProvider } from './models/vpn/wireguard/wireguard.provider';
@@ -207,6 +209,8 @@ export class Application extends HTTPApplication {
       AuditLogMiddleware,
       CORS,
       this.config.get('env') !== 'test' ? Authorization : AuthorizationTest,
+      ResolveOperation,
+      ReadOnlyValidation,
       ConfirmationToken,
       InputValidation,
       AccessControl,

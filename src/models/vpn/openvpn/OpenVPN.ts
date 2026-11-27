@@ -48,11 +48,19 @@ import { RouteToOpenVPN } from '../../routing/route/route-to-openvpn.model';
 import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to-openvpn.model';
 import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
+import Query from '../../../database/Query';
 import { IpUtils } from '../../../utils/ip-utils';
+import {
+  getOpenVPNServerDevice,
+  OpenVPNConfigOption,
+  OpenVPNServerNetwork,
+  validateOpenVPNServerNetwork,
+} from './openvpn-server-network';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 
 const tableName: string = 'openvpn';
+type ValidatedServerNetwork = OpenVPNServerNetwork & { subnetMask: string };
 
 @Entity(tableName)
 export class OpenVPN extends Model {
@@ -214,6 +222,71 @@ export class OpenVPN extends Model {
         resolve();
       });
     });
+  }
+
+  private static async getServerNetwork(
+    dbCon: Query,
+    fwcloud: number,
+    option: OpenVPNConfigOption,
+    device: string,
+    lock = false,
+  ): Promise<ValidatedServerNetwork> {
+    if (!option.ipobj) {
+      throw fwcError.other('The OpenVPN server option must reference an IPv4 network object.');
+    }
+
+    const rows = await new Promise<OpenVPNServerNetwork[]>((resolve, reject) => {
+      const sql = `SELECT type, address, netmask FROM ipobj WHERE id=? AND fwcloud=?${lock ? ' FOR UPDATE' : ''}`;
+      dbCon.query(sql, [option.ipobj, fwcloud], (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+    });
+    const network = rows[0];
+    if (!network) {
+      throw fwcError.other(`OpenVPN server network object ${option.ipobj} was not found.`);
+    }
+
+    return { ...network, subnetMask: validateOpenVPNServerNetwork(network, device) };
+  }
+
+  public static async validateServerOptions(
+    dbCon: Query,
+    fwcloud: number,
+    options: OpenVPNConfigOption[],
+    lock = false,
+  ): Promise<ValidatedServerNetwork[]> {
+    const device = getOpenVPNServerDevice(options);
+    const networks: ValidatedServerNetwork[] = [];
+    for (const option of options) {
+      if (option.name === 'server') {
+        networks.push(await this.getServerNetwork(dbCon, fwcloud, option, device, lock));
+      }
+    }
+    return networks;
+  }
+
+  private static getOrderedConfigOptions(
+    dbCon: Query,
+    openvpn: number,
+  ): Promise<(OpenVPNConfigOption & { comment: string | null })[]> {
+    return new Promise((resolve, reject) => {
+      const sql =
+        'SELECT name, ipobj, arg, scope, comment FROM openvpn_opt WHERE openvpn=? ORDER BY `order`, id';
+      dbCon.query(sql, [openvpn], (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+    });
+  }
+
+  public static async validateSavedServerNetwork(
+    dbCon: Query,
+    fwcloud: number,
+    openvpn: number,
+  ): Promise<void> {
+    const options = await this.getOrderedConfigOptions(dbCon, openvpn);
+    await this.validateServerOptions(dbCon, fwcloud, options);
   }
 
   public static delCfg(dbCon, fwcloud, openvpn): Promise<void> {
@@ -460,10 +533,10 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static dumpCfg(dbCon, fwcloud, openvpn) {
-    return new Promise((resolve, reject) => {
+  public static async dumpCfg(dbCon, fwcloud, openvpn): Promise<unknown> {
+    const vpnMeta = await new Promise<any>((resolve, reject) => {
       // First obtain the CN of the certificate.
-      let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name, VPN.tfa_enabled,
+      const sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name, VPN.tfa_enabled,
                 VPNSRV.tfa_enabled as server_tfa_enabled, VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
                 INNER JOIN openvpn VPN ON VPN.crt=CRT.id
                 LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
@@ -473,107 +546,98 @@ export class OpenVPN extends Model {
 
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        const vpnMeta = result[0];
-
-        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + vpnMeta.ca + '/';
-        const ca_crt_path = ca_dir + 'ca.crt';
-        const crt_path = ca_dir + 'issued/' + vpnMeta.cn + '.crt';
-        const key_path = ca_dir + 'private/' + vpnMeta.cn + '.key';
-        const dh_path = vpnMeta.type === 2 ? ca_dir + 'dh.pem' : '';
-
-        // Header description.
-        let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
-        des += `# Generated: ${Date()}\n`;
-        des += `# Certificate Common Name: ${vpnMeta.cn} \n`;
-        des += vpnMeta.cl_name
-          ? `# Firewall Cluster: ${vpnMeta.cl_name}\n`
-          : `# Firewall: ${vpnMeta.fw_name}\n`;
-        if (vpnMeta.srv_config1 && vpnMeta.srv_config1.endsWith('.conf'))
-          vpnMeta.srv_config1 = vpnMeta.srv_config1.slice(0, -5);
-        if (vpnMeta.srv_config2 && vpnMeta.srv_config2.endsWith('.conf'))
-          vpnMeta.srv_config2 = vpnMeta.srv_config2.slice(0, -5);
-        des += `# OpenVPN Server: ${vpnMeta.srv_config1 ? vpnMeta.srv_config1 : vpnMeta.srv_config2}\n`;
-        des += `# Type: ${vpnMeta.srv_config1 ? 'Server' : 'Client'}\n\n`;
-
-        // Get all the configuration options.
-        sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
-        dbCon.query(sql, async (error, result) => {
-          if (error) return reject(error);
-
-          try {
-            // Generate the OpenVPN config file.
-            let ovpn_cfg = des;
-            let ovpn_ccd = '';
-
-            let hasAuthUserPass = false;
-
-            // First add all the configuration options.
-            for (const opt of result) {
-              if (vpnMeta.type === 1 && opt.name === 'auth-user-pass') {
-                hasAuthUserPass = true;
-                const username = opt.arg || vpnMeta.cn;
-                const authUserPassBlock =
-                  (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') +
-                  '<auth-user-pass>\n' +
-                  username +
-                  '\n</auth-user-pass>';
-                ovpn_cfg += authUserPassBlock + '\n';
-                continue;
-              }
-
-              let cfg_line =
-                (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
-              if (opt.name === 'auth-user-pass') hasAuthUserPass = true;
-              if (opt.ipobj) {
-                // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
-                if (ipobj.type === 7) {
-                  // Network
-                  const netmask =
-                    ipobj.netmask[0] === '/'
-                      ? IpUtils.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
-                      : ipobj.netmask;
-                  cfg_line += ' ' + ipobj.address + ' ' + netmask;
-                } else if (ipobj.type === 5) {
-                  // Address
-                  cfg_line += ' ' + ipobj.address;
-                  if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
-                  else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                } else if (ipobj.type === 9) {
-                  // DNS Name
-                  cfg_line += ' ' + ipobj.name;
-                  if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                }
-              } else if (opt.arg) cfg_line += ' ' + opt.arg;
-
-              if (opt.scope === 0)
-                // CCD file
-                ovpn_ccd += cfg_line + '\n';
-              // Config file
-              else ovpn_cfg += cfg_line + '\n';
-            }
-
-            // Client configs only embed auth-user-pass when 2FA is enabled for that specific client.
-            if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
-              const username = vpnMeta.cn;
-              ovpn_cfg += '<auth-user-pass>\n' + username + '\n</auth-user-pass>\n';
-            }
-
-            // Now read the files data and put it into de config files.
-            if (dh_path)
-              // Configuración OpenVPN de servidor.
-              ovpn_cfg += '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
-            ovpn_cfg += '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
-            ovpn_cfg += '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
-            ovpn_cfg += '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
-
-            resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
-          } catch (error) {
-            reject(error);
-          }
-        });
+        resolve(result[0]);
       });
     });
+
+    const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + vpnMeta.ca + '/';
+    const ca_crt_path = ca_dir + 'ca.crt';
+    const crt_path = ca_dir + 'issued/' + vpnMeta.cn + '.crt';
+    const key_path = ca_dir + 'private/' + vpnMeta.cn + '.key';
+    const dh_path = vpnMeta.type === 2 ? ca_dir + 'dh.pem' : '';
+
+    // Header description.
+    let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
+    des += `# Generated: ${Date()}\n`;
+    des += `# Certificate Common Name: ${vpnMeta.cn} \n`;
+    des += vpnMeta.cl_name
+      ? `# Firewall Cluster: ${vpnMeta.cl_name}\n`
+      : `# Firewall: ${vpnMeta.fw_name}\n`;
+    if (vpnMeta.srv_config1 && vpnMeta.srv_config1.endsWith('.conf'))
+      vpnMeta.srv_config1 = vpnMeta.srv_config1.slice(0, -5);
+    if (vpnMeta.srv_config2 && vpnMeta.srv_config2.endsWith('.conf'))
+      vpnMeta.srv_config2 = vpnMeta.srv_config2.slice(0, -5);
+    des += `# OpenVPN Server: ${vpnMeta.srv_config1 ? vpnMeta.srv_config1 : vpnMeta.srv_config2}\n`;
+    des += `# Type: ${vpnMeta.srv_config1 ? 'Server' : 'Client'}\n\n`;
+
+    const options = await this.getOrderedConfigOptions(dbCon, openvpn);
+    // Generate the OpenVPN config file.
+    let ovpn_cfg = des;
+    let ovpn_ccd = '';
+
+    let hasAuthUserPass = false;
+    const serverDevice = vpnMeta.type === 2 ? getOpenVPNServerDevice(options) : null;
+
+    // First add all the configuration options.
+    for (const opt of options) {
+      const comment = opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '';
+      if (opt.name === 'auth-user-pass') {
+        hasAuthUserPass = true;
+        if (vpnMeta.type === 1) {
+          const username = opt.arg || vpnMeta.cn;
+          ovpn_cfg += `${comment}<auth-user-pass>\n${username}\n</auth-user-pass>\n`;
+          continue;
+        }
+      }
+
+      let cfg_line = comment + opt.name;
+      if (vpnMeta.type === 2 && opt.name === 'server') {
+        const network = await this.getServerNetwork(dbCon, fwcloud, opt, serverDevice);
+        cfg_line += ' ' + network.address + ' ' + network.subnetMask;
+      } else if (opt.ipobj) {
+        // Get the ipobj data.
+        const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
+        if (ipobj.type === 7) {
+          // Network
+          const netmask =
+            ipobj.netmask[0] === '/'
+              ? IpUtils.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
+              : ipobj.netmask;
+          cfg_line += ' ' + ipobj.address + ' ' + netmask;
+        } else if (ipobj.type === 5) {
+          // Address
+          cfg_line += ' ' + ipobj.address;
+          if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
+          else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
+        } else if (ipobj.type === 9) {
+          // DNS Name
+          cfg_line += ' ' + ipobj.name;
+          if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
+        }
+      } else if (opt.arg) cfg_line += ' ' + opt.arg;
+
+      if (opt.scope === 0)
+        // CCD file
+        ovpn_ccd += cfg_line + '\n';
+      // Config file
+      else ovpn_cfg += cfg_line + '\n';
+    }
+
+    // Client configs only embed auth-user-pass when 2FA is enabled for that specific client.
+    if (vpnMeta.type === 1 && Number(vpnMeta.tfa_enabled) === 1 && !hasAuthUserPass) {
+      const username = vpnMeta.cn;
+      ovpn_cfg += '<auth-user-pass>\n' + username + '\n</auth-user-pass>\n';
+    }
+
+    // Now read the files data and put it into de config files.
+    if (dh_path)
+      // Configuración OpenVPN de servidor.
+      ovpn_cfg += '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
+    ovpn_cfg += '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
+    ovpn_cfg += '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
+    ovpn_cfg += '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
+
+    return { cfg: ovpn_cfg, ccd: ovpn_ccd };
   }
 
   public static updateOpenvpnStatus(dbCon, openvpn, status_action) {
@@ -947,112 +1011,83 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static createOpenvpnServerInterface(req, cfg): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
-        if (openvpn_opt) {
-          const interface_name = openvpn_opt.arg;
+  public static async createOpenvpnServerInterface(
+    req,
+    cfg,
+    serverNetwork?: ValidatedServerNetwork,
+  ): Promise<void> {
+    const devOption = (await this.getOptData(req.dbCon, cfg, 'dev')) as OpenVPNConfigOption;
+    if (!devOption) return;
 
-          // If we already have an interface with the same name then do nothing.
-          const interfaces = await Interface.getInterfaces(
-            req.dbCon,
-            req.body.fwcloud,
-            req.body.firewall,
-          );
-          for (const _interface of interfaces) {
-            if (_interface.name === interface_name) return resolve();
-          }
+    const interfaceName = devOption.arg;
+    const { dbCon, body } = req;
+    const interfaces = await Interface.getInterfaces(dbCon, body.fwcloud, body.firewall);
+    if (interfaces.some((item) => item.name === interfaceName)) return;
 
-          // Create the OpenVPN server network interface.
-          const interfaceData = {
-            id: null,
-            firewall: req.body.firewall,
-            name: interface_name,
-            labelName: '',
-            type: 10,
-            interface_type: 10,
-            comment: '',
-            mac: '',
-          };
-
-          const interfaceId = await Interface.insertInterface(req.dbCon, interfaceData);
-          if (interfaceId) {
-            const interfaces_node: any = await Tree.getNodeUnderFirewall(
-              req.dbCon,
-              req.body.fwcloud,
-              req.body.firewall,
-              'FDI',
-            );
-            if (interfaces_node) {
-              const nodeId = await Tree.newNode(
-                req.dbCon,
-                req.body.fwcloud,
-                interface_name,
-                interfaces_node.id,
-                'IFF',
-                interfaceId,
-                10,
-              );
-
-              // Create the network address for the new interface.
-              openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
-              if (openvpn_opt && openvpn_opt.ipobj) {
-                // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(
-                  req.dbCon,
-                  req.body.fwcloud,
-                  openvpn_opt.ipobj,
-                );
-                if (ipobj.type === 7) {
-                  // Network
-                  const net = IpUtils.subnet(ipobj.address, ipobj.netmask);
-
-                  const ipobjData = {
-                    id: null,
-                    fwcloud: req.body.fwcloud,
-                    interface: interfaceId,
-                    name: interface_name,
-                    type: 5,
-                    protocol: null,
-                    address: net.firstAddress,
-                    netmask: ipobj.netmask,
-                    diff_serv: null,
-                    ip_version: 4,
-                    icmp_code: null,
-                    icmp_type: null,
-                    tcp_flags_mask: null,
-                    tcp_flags_settings: null,
-                    range_start: null,
-                    range_end: null,
-                    source_port_start: 0,
-                    source_port_end: 0,
-                    destination_port_start: 0,
-                    destination_port_end: 0,
-                    options: null,
-                  };
-
-                  const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
-                  await Tree.newNode(
-                    req.dbCon,
-                    req.body.fwcloud,
-                    `${interface_name} (${net.firstAddress})`,
-                    nodeId,
-                    'OIA',
-                    ipobjId,
-                    5,
-                  );
-                }
-              }
-            }
-          }
-        }
-
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
+    const interfaceId = await Interface.insertInterface(dbCon, {
+      id: null,
+      firewall: body.firewall,
+      name: interfaceName,
+      labelName: '',
+      type: 10,
+      interface_type: 10,
+      comment: '',
+      mac: '',
     });
+    if (!interfaceId) return;
+
+    const interfacesNode: any = await Tree.getNodeUnderFirewall(
+      dbCon,
+      body.fwcloud,
+      body.firewall,
+      'FDI',
+    );
+    if (!interfacesNode) return;
+
+    const nodeId = await Tree.newNode(
+      dbCon,
+      body.fwcloud,
+      interfaceName,
+      interfacesNode.id,
+      'IFF',
+      interfaceId,
+      10,
+    );
+    if (!serverNetwork) return;
+
+    const { firstAddress } = IpUtils.subnet(serverNetwork.address, serverNetwork.subnetMask);
+    const ipobjId = await IPObj.insertIpobj(dbCon, {
+      id: null,
+      fwcloud: body.fwcloud,
+      interface: interfaceId,
+      name: interfaceName,
+      type: 5,
+      protocol: null,
+      address: firstAddress,
+      netmask: serverNetwork.netmask,
+      diff_serv: null,
+      ip_version: 4,
+      icmp_code: null,
+      icmp_type: null,
+      tcp_flags_mask: null,
+      tcp_flags_settings: null,
+      range_start: null,
+      range_end: null,
+      source_port_start: 0,
+      source_port_end: 0,
+      destination_port_start: 0,
+      destination_port_end: 0,
+      options: null,
+    });
+    await Tree.newNode(
+      dbCon,
+      body.fwcloud,
+      `${interfaceName} (${firstAddress})`,
+      nodeId,
+      'OIA',
+      ipobjId,
+      5,
+    );
   }
 
   //Move rules from one firewall to other.
