@@ -46,8 +46,7 @@ import { IPObj } from '../ipobj/IPObj';
 import { Mark } from '../ipobj/Mark';
 import { FSHelper } from '../../utils/fs-helper';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
-import { IPObjRepository } from '../ipobj/IPObj.repository';
-import { DatabaseService } from '../../database/database.service';
+import { FwCloudLockService } from './fwcloud-lock.service';
 
 const tableName: string = 'fwcloud';
 
@@ -533,78 +532,7 @@ export class FwCloud extends Model {
    * @throws An error if there is an issue with the database query, file system operations, or JSON parsing.
    */
   static async checkFwcloudLockTimeout(fwcloudId: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const locked = 1;
-      const unlocked = 0;
-
-      db.get(async (error, connection) => {
-        if (error) return reject(error);
-
-        const sql = `
-          SELECT locked_by
-          FROM ${tableName} 
-          WHERE id = ${connection.escape(fwcloudId)} 
-          AND locked = ${connection.escape(locked)}
-        `;
-
-        connection.query(sql, async (error, result) => {
-          if (error) return reject(error);
-          if (result.length === 0) return resolve();
-
-          const sessionFilePath = path.join(
-            app().config.get('session').files_path,
-            result[0].locked_by + '.json',
-          );
-
-          try {
-            const exists = await fs.pathExists(sessionFilePath);
-            const sqlUpdate = `
-              UPDATE ${tableName}
-              SET locked = ${connection.escape(unlocked)}
-              WHERE id = ${connection.escape(fwcloudId)}
-            `;
-
-            if (exists) {
-              logger().info(`Checking lock timeout for session ${sessionFilePath}`);
-
-              fs.readFile(sessionFilePath, 'utf8', (err, data) => {
-                if (err) return reject(err);
-
-                try {
-                  const sessionData = JSON.parse(data);
-                  const elapsed_ms: number = Date.now() - sessionData.keepalive_ts;
-                  const keepalive_ms: number = app().config.get('session').keepalive_ms;
-
-                  if (elapsed_ms > keepalive_ms) {
-                    logger().info(
-                      `Session file ${sessionFilePath} has expired, unlocking FwCloud ${fwcloudId}`,
-                    );
-                    connection.query(sqlUpdate, (err, result) => {
-                      if (err) return reject(err);
-                      resolve();
-                    });
-                  } else {
-                    resolve();
-                  }
-                } catch (parseError) {
-                  reject(parseError);
-                }
-              });
-            } else {
-              logger().info(
-                `Session file ${sessionFilePath} not found, unlocking FwCloud ${fwcloudId}`,
-              );
-              connection.query(sqlUpdate, (err, result) => {
-                if (err) return reject(err);
-                resolve();
-              });
-            }
-          } catch (fsError) {
-            reject(fsError);
-          }
-        });
-      });
-    });
+    return FwCloudLockService.expire(fwcloudId);
   }
 
   /**
@@ -684,109 +612,7 @@ export class FwCloud extends Model {
    *
    */
   public static updateFwcloudLock(fwcloudData: FwcData): Promise<FwcLockData> {
-    return new Promise(async (resolve, reject) => {
-      await FwCloud.checkFwcloudLockTimeout(fwcloudData.fwcloud);
-
-      const locked = 1;
-      db.get((error, connection) => {
-        if (error) return reject(error);
-
-        // Check if FWCloud is unlocked or locked by the same user and if the user has access
-        const sql = `
-          SELECT C.id, C.locked_by, C.locked_at, U.user
-          FROM ${tableName} C
-          INNER JOIN user__fwcloud U ON U.fwcloud = C.id
-          WHERE C.id = ${connection.escape(fwcloudData.fwcloud)}
-          AND U.user = ${connection.escape(fwcloudData.iduser)}
-          AND (C.locked = 0 OR (C.locked = 1 AND C.locked_by = ${connection.escape(fwcloudData.lock_session_id)}))
-        `;
-
-        connection.query(sql, async (error, rows) => {
-          if (error) return reject(error);
-
-          if (rows && rows.length > 0) {
-            const sqlUpdate = `
-          UPDATE ${tableName}
-          SET locked = ${connection.escape(locked)},
-          locked_at = CURRENT_TIMESTAMP,
-          locked_by = ${connection.escape(fwcloudData.lock_session_id)}
-          WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-        `;
-            connection.query(sqlUpdate, (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve({ result: true });
-              }
-            });
-          } else {
-            const sqlLockedBy = `
-          SELECT locked_by, locked_at FROM ${tableName}
-          WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-          AND locked = ${connection.escape(locked)}
-        `;
-
-            connection.query(sqlLockedBy, async (error, row) => {
-              if (error) {
-                return reject(error);
-              } else if (row && row.length > 0) {
-                const sessionFilePath = path.join(
-                  app().config.get('session').files_path,
-                  row[0].locked_by + '.json',
-                );
-
-                try {
-                  const exists = await fs.pathExists(sessionFilePath);
-                  if (exists) {
-                    fs.readFile(sessionFilePath, 'utf8', async (err, data) => {
-                      if (err) return reject(err);
-                      try {
-                        const sessionData = JSON.parse(data);
-                        const databaseService = (await app().getService(
-                          DatabaseService.name,
-                        )) as DatabaseService;
-                        const ipobjRepository = new IPObjRepository(
-                          databaseService.dataSource.manager,
-                        );
-
-                        const remoteAddrName =
-                          sessionData.remote_addr != '127.0.0.1'
-                            ? (await ipobjRepository.getNameByAddressOpenVPN(
-                                sessionData.remote_addr,
-                              )) ||
-                              (await ipobjRepository.getNameByAddressWireGuard(
-                                sessionData.remote_addr,
-                              )) ||
-                              (await ipobjRepository.getNameByAddressIPSec(
-                                sessionData.remote_addr,
-                              )) ||
-                              (await ipobjRepository.getNameByAddress(sessionData.remote_addr)) ||
-                              ''
-                            : '';
-
-                        resolve({
-                          result: false,
-                          lockByUser: sessionData.username,
-                          lockedAt: row[0]?.locked_at ?? null,
-                          remoteAddr: sessionData.remote_addr,
-                          remoteAddrName: remoteAddrName,
-                        });
-                      } catch (fsError) {
-                        reject(fsError);
-                      }
-                    });
-                  }
-                } catch (fsError) {
-                  reject(fsError);
-                }
-              } else {
-                resolve({ result: false });
-              }
-            });
-          }
-        });
-      });
-    });
+    return FwCloudLockService.acquire(fwcloudData);
   }
 
   /**
@@ -816,89 +642,16 @@ export class FwCloud extends Model {
    *
    */
   public static updateFwcloudUnlock(fwcloudData): Promise<{ result: boolean }> {
-    return new Promise((resolve, reject) => {
-      const locked = 1;
-      const unlocked = 0;
-      db.get((error, connection) => {
-        if (error) reject(error);
-        const sql = `
-          UPDATE ${tableName}
-          SET locked = ${connection.escape(unlocked)}, locked_at = null, locked_by = null
-          WHERE id = ${connection.escape(fwcloudData.id)}
-          AND locked = ${connection.escape(locked)}
-          AND locked_by = ${connection.escape(fwcloudData.lock_session_id)}
-        `;
-        connection.query(sql, (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve({ result: result.affectedRows > 0 });
-          }
-        });
-      });
-    });
+    return FwCloudLockService.release(fwcloudData.id, fwcloudData.lock_session_id);
   }
 
-  public static unlockAllLockedFwclouds(sessionID): Promise<FwCloud[]> {
-    return new Promise((resolve, reject) => {
-      const locked = 1;
-      db.get((error, connection) => {
-        if (error) return reject(error);
-
-        const sql = `
-          UPDATE ${tableName}
-          SET locked = 0, locked_at = null, locked_by = null
-          WHERE locked = ${connection.escape(locked)}
-          AND locked_by = ${connection.escape(sessionID)}
-        `;
-
-        connection.query(sql, (error, rows) => {
-          if (error) return reject(error);
-          resolve(rows);
-        });
-      });
-    });
+  public static unlockAllLockedFwclouds(sessionID: string): Promise<{ affectedRows: number }> {
+    return FwCloudLockService.releaseAll(sessionID);
   }
 
   public static updateFwcloudForceLock(
     fwcloudData,
   ): Promise<{ result: boolean; previousLockedBy: string }> {
-    return new Promise((resolve, reject) => {
-      const locked = 1;
-      db.get((error, connection) => {
-        if (error) return reject(error);
-
-        // 1. Obtener el locked_by actual
-        const selectSql = `
-      SELECT locked_by FROM ${tableName}
-      WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-    `;
-        connection.query(selectSql, (error, rows) => {
-          if (error) return reject(error);
-
-          const previousLockedBy = rows && rows.length > 0 ? rows[0].locked_by : null;
-
-          // 2. Hacer el update
-          const updateSql = `
-        UPDATE ${tableName}
-        SET locked = ${connection.escape(locked)},
-        locked_at = CURRENT_TIMESTAMP,
-        locked_by = ${connection.escape(fwcloudData.lock_session_id)}
-        WHERE id = ${connection.escape(fwcloudData.fwcloud)}
-      `;
-          connection.query(updateSql, (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              // 3. Devolver el resultado y el locked_by anterior
-              resolve({
-                result: result.affectedRows > 0,
-                previousLockedBy,
-              });
-            }
-          });
-        });
-      });
-    });
+    return FwCloudLockService.takeOver(fwcloudData.fwcloud, fwcloudData.lock_session_id);
   }
 }

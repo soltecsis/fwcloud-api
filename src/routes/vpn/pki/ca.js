@@ -29,7 +29,6 @@ import { Ca } from '../../../models/vpn/pki/Ca';
 import { Tree } from '../../../models/tree/Tree';
 import { app, logger } from '../../../fonaments/abstract-application';
 import { WebSocketService } from '../../../sockets/web-socket.service';
-const config = require('../../../config/config');
 const utilsModel = require('../../../utils/utils');
 const restrictedCheck = require('../../../middleware/restricted');
 
@@ -94,7 +93,7 @@ async(req, res) => {
 		await Ca.deleteCA(req);
 
 		// Delete the ca directory structure.
-		await utilsModel.deleteFolder(config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.body.ca);
+		await utilsModel.removeCaDataDir(req.body.fwcloud, req.body.ca);
 
 		// Delete the ca node into the tree.
 		await Tree.deleteObjFromTree(req.body.fwcloud, req.body.ca, 300);

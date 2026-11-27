@@ -36,6 +36,9 @@ import { getFWCloudMetadata } from '../../../metadata/metadata';
 import { HTTPApplication } from '../../http-application';
 import { ClassConstructor } from 'class-transformer';
 import { Routes } from '../../../routes/routes';
+import { OperationRegistry } from '../../../authorization/operation-registry';
+import { OperationPolicy } from '../../../authorization/operation-policy';
+import { registerLegacyOperations } from '../../../authorization/legacy-operation';
 
 type AuditRouteMetadata = {
   httpMethod: HttpMethod;
@@ -58,6 +61,16 @@ export function _URL<T extends URLHelper>(): T {
 }
 
 export class RouterService extends Service {
+  private readonly operationRegistry = new OperationRegistry();
+
+  public resolveOperation(method: string, path: string): Readonly<OperationPolicy> | undefined {
+    return this.operationRegistry.resolve(method, path);
+  }
+
+  private mountLegacyRouter(prefix: string, router: express.Router): void {
+    registerLegacyOperations(this.operationRegistry, prefix, router);
+    this._express.use(prefix, router);
+  }
   protected _express: express.Application;
   protected _router: express.Application;
 
@@ -124,6 +137,7 @@ export class RouterService extends Service {
   }
 
   public registerRoutes(): void {
+    this.operationRegistry.clear();
     const routes: Array<Route> = this.parseRoutes();
 
     for (let i = 0; i < routes.length; i++) {
@@ -135,35 +149,35 @@ export class RouterService extends Service {
 
     if (this._app instanceof HTTPApplication) {
       //OLD Routes
-      this._express.use('/user', require('../../../routes/user/user'));
+      this.mountLegacyRouter('/user', require('../../../routes/user/user'));
       this._express.use('/customer', require('../../../routes/user/customer'));
-      this._express.use('/fwcloud', require('../../../routes/fwcloud/fwcloud'));
-      this._express.use('/cluster', require('../../../routes/firewall/cluster'));
-      this._express.use('/firewall', require('../../../routes/firewall/firewall'));
-      this._express.use('/policy/rule', require('../../../routes/policy/rule'));
+      this.mountLegacyRouter('/fwcloud', require('../../../routes/fwcloud/fwcloud'));
+      this.mountLegacyRouter('/cluster', require('../../../routes/firewall/cluster'));
+      this.mountLegacyRouter('/firewall', require('../../../routes/firewall/firewall'));
+      this.mountLegacyRouter('/policy/rule', require('../../../routes/policy/rule'));
       this._express.use('/policy/compile', require('../../../routes/policy/compile'));
       this._express.use('/policy/install', require('../../../routes/policy/install'));
       this._express.use('/policy/ipobj', require('../../../routes/policy/ipobj'));
       this._express.use('/policy/interface', require('../../../routes/policy/interface'));
       this._express.use('/policy/group', require('../../../routes/policy/group'));
-      this._express.use('/policy/types', require('../../../routes/policy/types'));
-      this._express.use('/policy/positions', require('../../../routes/policy/positions'));
+      this.mountLegacyRouter('/policy/types', require('../../../routes/policy/types'));
+      this.mountLegacyRouter('/policy/positions', require('../../../routes/policy/positions'));
       this._express.use('/policy/openvpn', require('../../../routes/policy/openvpn'));
       this._express.use('/policy/prefix', require('../../../routes/policy/prefix'));
-      this._express.use('/interface', require('../../../routes/interface/interface'));
-      this._express.use('/ipobj', require('../../../routes/ipobj/ipobj'));
-      this._express.use('/ipobj/group', require('../../../routes/ipobj/group'));
-      this._express.use('/ipobj/types', require('../../../routes/ipobj/types'));
-      this._express.use('/ipobj/positions', require('../../../routes/ipobj/positions'));
-      this._express.use('/ipobj/mark', require('../../../routes/ipobj/mark'));
-      this._express.use('/tree', require('../../../routes/tree/tree'));
+      this.mountLegacyRouter('/interface', require('../../../routes/interface/interface'));
+      this.mountLegacyRouter('/ipobj', require('../../../routes/ipobj/ipobj'));
+      this.mountLegacyRouter('/ipobj/group', require('../../../routes/ipobj/group'));
+      this.mountLegacyRouter('/ipobj/types', require('../../../routes/ipobj/types'));
+      this.mountLegacyRouter('/ipobj/positions', require('../../../routes/ipobj/positions'));
+      this.mountLegacyRouter('/ipobj/mark', require('../../../routes/ipobj/mark'));
+      this.mountLegacyRouter('/tree', require('../../../routes/tree/tree'));
       this._express.use('/tree/folder', require('../../../routes/tree/folder'));
       this._express.use('/tree/repair', require('../../../routes/tree/repair'));
       this._express.use('/vpn/pki/ca', require('../../../routes/vpn/pki/ca'));
       this._express.use('/vpn/pki/crt', require('../../../routes/vpn/pki/crt'));
       this._express.use('/vpn/pki/prefix', require('../../../routes/vpn/pki/prefix'));
-      this._express.use('/vpn/openvpn', require('../../../routes/vpn/openvpn/openvpn'));
-      this._express.use('/vpn/openvpn/prefix', require('../../../routes/vpn/openvpn/prefix'));
+      this.mountLegacyRouter('/vpn/openvpn', require('../../../routes/vpn/openvpn/openvpn'));
+      this.mountLegacyRouter('/vpn/openvpn/prefix', require('../../../routes/vpn/openvpn/prefix'));
       this._express.use('/policy/wireguard', require('../../../routes/policy/wireguard'));
       this._express.use('/policy/ipsec', require('../../../routes/policy/ipsec'));
     }
@@ -190,6 +204,11 @@ export class RouterService extends Service {
   }
 
   protected registerRoute(route: Route): Route {
+    if (typeof route.pathParams === 'string') {
+      this.operationRegistry.register(route.httpMethod, route.pathParams, route.operationPolicy);
+    } else if (route.operationPolicy) {
+      throw new Error('Operation policies require a string route template');
+    }
     if (route.isControllerHandler()) {
       return this.registerControllerHandlerRoute(route);
     }

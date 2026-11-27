@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -20,6 +21,10 @@ export class HAProxyRuleCreateDto {
   @IsNumber()
   @IsOptional()
   groupId?: number;
+
+  @IsIn([null])
+  @IsOptional()
+  idgroup?: null;
 
   @IsNumber()
   @IsOptional()

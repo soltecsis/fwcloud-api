@@ -128,6 +128,8 @@ export class DhcpController extends Controller {
       req.inputs.all<DHCPRuleCreateDto>(),
       this._dhcpgroup ? { group: this._dhcpgroup.id } : null,
     );
+    if (data.idgroup === null) data.firewallId = this._firewall.id;
+
     try {
       const dhcpRule: DHCPRule = await this._dhcpRuleService.store(data);
 

@@ -28,6 +28,7 @@ import { Service } from '../../../fonaments/services/service';
 import { ErrorBag } from '../../../fonaments/validation/validator';
 import { Offset } from '../../../offset';
 import { Firewall } from '../../firewall/Firewall';
+import { FirewallRepository } from '../../firewall/firewall.repository';
 import { FirewallService } from '../../firewall/firewall.service';
 import { Interface } from '../../interface/Interface';
 import { IPObj } from '../../ipobj/IPObj';
@@ -50,6 +51,7 @@ import { RouteToIPSec } from './route-to-ipsec.model';
 import { WireGuardPrefix } from '../../vpn/wireguard/WireGuardPrefix';
 import { IPSec } from '../../vpn/ipsec/IPSec';
 import { IPSecPrefix } from '../../vpn/ipsec/IPSecPrefix';
+import { RoutingTable } from '../routing-table/routing-table.model';
 
 interface IFindManyRoutePath {
   firewallId?: number;
@@ -79,6 +81,7 @@ export interface ICreateRoute {
   ipsecPrefixIds?: { id: number; order: number }[];
   to?: number; //Reference where create the route
   offset?: Offset;
+  idgroup?: null;
 }
 
 interface IUpdateRoute {
@@ -185,16 +188,7 @@ export class RouteService extends Service {
       comment: data.comment,
       style: data.style,
     };
-
-    const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(
-      data.routingTableId,
-    );
-    const route_order: number = lastRuoute?.route_order ? lastRuoute.route_order + 1 : 1;
-    routeData.route_order = route_order;
-
-    let persisted: Route = await this._repository.save(routeData);
-
-    persisted = await this.update(persisted.id, {
+    const updateData: IUpdateRoute = {
       ipObjIds: data.ipObjIds,
       ipObjGroupIds: data.ipObjGroupIds,
       openVPNIds: data.openVPNIds,
@@ -205,7 +199,33 @@ export class RouteService extends Service {
       ipsecPrefixIds: data.ipsecPrefixIds,
       firewallApplyToId: data.firewallApplyToId,
       interfaceId: data.interfaceId,
-    });
+    };
+
+    if (data.idgroup === null) {
+      return this._repository.manager.transaction(async (manager) => {
+        const repository = new RouteRepository(manager);
+        const routingTable = await manager.findOneOrFail(RoutingTable, {
+          where: { id: data.routingTableId },
+        });
+        await manager.findOneOrFail(Firewall, {
+          where: { id: routingTable.firewallId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        const route_order = await repository.openOrderGapOutsideGroup(
+          data.routingTableId,
+          data.to,
+          data.offset,
+        );
+        const route = await repository.save({ ...routeData, routeGroupId: null, route_order });
+        return this.update(route.id, updateData, repository);
+      });
+    }
+
+    const lastRoute: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
+    routeData.route_order = lastRoute?.route_order ? lastRoute.route_order + 1 : 1;
+
+    const route: Route = await this._repository.save(routeData);
+    const persisted = await this.update(route.id, updateData);
 
     if (
       Object.prototype.hasOwnProperty.call(data, 'to') &&
@@ -219,21 +239,23 @@ export class RouteService extends Service {
     return persisted;
   }
 
-  async update(id: number, data: IUpdateRoute): Promise<Route> {
-    let route: Route = await this._repository.preload(
-      Object.assign(
-        {
-          active: data.active,
-          comment: data.comment,
-          gatewayId: data.gatewayId,
-          style: data.style,
-        },
-        { id },
-      ),
-    );
+  async update(id: number, data: IUpdateRoute, repository = this._repository): Promise<Route> {
+    const changes = {
+      id,
+      active: data.active,
+      comment: data.comment,
+      gatewayId: data.gatewayId,
+      style: data.style,
+    };
+    // preload() reads through the data source manager, outside any transaction, so a
+    // transactional repository must load the row itself to see the uncommitted insert.
+    let route =
+      repository === this._repository
+        ? await repository.preload(changes)
+        : repository.merge(await repository.findOneByOrFail({ id }), changes);
 
     const firewall: Firewall = (
-      await this._repository.findOne({
+      await repository.findOne({
         relations: { routingTable: { firewall: true } },
         where: {
           id: route.id,
@@ -377,17 +399,21 @@ export class RouteService extends Service {
       route.interfaceId = data.interfaceId;
     }
 
-    route = await this._repository.save(route);
+    route = await repository.save(route);
 
-    await this.reorderTo(route.id);
+    await this.reorderTo(route.id, repository);
 
-    await this._firewallService.markAsUncompiled(firewall.id);
+    if (repository === this._repository) {
+      await this._firewallService.markAsUncompiled(firewall.id);
+    } else {
+      await new FirewallRepository(repository.manager).markAsUncompiled(firewall);
+    }
 
     return route;
   }
 
-  protected async reorderTo(ruleId: number): Promise<void> {
-    const route: Route = await this._repository.findOneOrFail({
+  protected async reorderTo(ruleId: number, repository = this._repository): Promise<void> {
+    const route: Route = await repository.findOneOrFail({
       where: {
         id: ruleId,
       },
@@ -421,7 +447,7 @@ export class RouteService extends Service {
         return item;
       });
 
-    await this._repository.save(route);
+    await repository.save(route);
   }
 
   async copy(ids: number[], destRule: number, position: Offset): Promise<Route[]> {

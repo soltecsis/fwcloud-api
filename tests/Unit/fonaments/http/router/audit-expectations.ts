@@ -86,6 +86,7 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/profiles/:code/:profileVersion/apply': { audited: true },
   'POST /fwclouds/:fwcloud/profiles/:code/:profileVersion/vpn': { audited: true },
   'POST /fwclouds/:fwcloud/export': { audited: true },
+  'POST /fwclouds/:fwcloud/clusters/:cluster/policy/install': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/AIassistant': {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
@@ -97,6 +98,18 @@ export const auditRouteExpectationManifest: AuditRouteExpectationManifest = {
   'POST /fwclouds/:fwcloud/firewalls/:firewall/ipsecs/:ipsec/installer': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/openvpns/:openvpn/installer': { audited: true },
   'POST /fwclouds/:fwcloud/firewalls/:firewall/policyRules/download': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/content': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/diff': {
+    audited: false,
+    notes: 'Read-style operation over a mutating HTTP verb.',
+  },
+  'POST /fwclouds/:fwcloud/firewalls/:firewall/policyScripts/history': {
     audited: false,
     notes: 'Read-style operation over a mutating HTTP verb.',
   },

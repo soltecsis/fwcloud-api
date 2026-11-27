@@ -173,6 +173,26 @@ remaining filters and stores the selection with the existing filter preferences.
 and detail views show category and authentication outcome, with labels for unauthenticated
 and historical events.
 
+## Policy rule copy and move
+
+`PUT /policy/rule/copy` and `PUT /policy/rule/move` paste the rules in `rulesIds` next to
+`pasteOnRuleId`: above it with `pasteOffset: -1`, below it with `pasteOffset: 1`. They keep
+the policy order of the selected rules, whatever the order of `rulesIds`. For copies,
+`pasteOffset: 0` pastes above the rule. For moves, it keeps the rules where they are and only
+changes their group.
+
+The optional `idgroup` sets the group of the pasted rules:
+
+| `idgroup` | Group of the pasted rules |
+| --- | --- |
+| Omitted | The group of `pasteOnRuleId` (previous behavior). |
+| `null` | No group. Allowed only at a group boundary, e.g. above the first rule or below the last rule of a group. |
+| Group id | The group of `pasteOnRuleId` or of the rule on the other side of the insertion point. |
+
+Values that would split a group, or `null`/another group with `pasteOffset: 0` on a move, return
+HTTP 400 "Not allowed". Unknown groups and groups of other firewalls return HTTP 400 "Not found".
+Moves run in a single transaction and remove the groups they leave empty.
+
 ## Login DAST in CI
 
 GitHub Actions uses official ZAP API Scan profiles for public login and ten authenticated queries,

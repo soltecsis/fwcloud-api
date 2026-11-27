@@ -31,6 +31,8 @@ import { SSHCommunication } from '../../communications/ssh.communication';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { PgpHelper } from '../../utils/pgp';
 import { Communication } from '../../communications/communication';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import db from '../../database/database-manager';
 
 export class SystemCtlController extends Controller {
@@ -46,6 +48,8 @@ export class SystemCtlController extends Controller {
       .where(`firewall.id = :id`, { id: req.body.firewall })
       .andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
       .getOne();
+    await this.validateOpenVPNActivation(firewall, req.body.command, req.body.service);
+
     let communication: Communication<unknown>;
     if (firewall.install_communication === FirewallInstallCommunication.SSH) {
       const pgp: PgpHelper = new PgpHelper(req.session.pgp);
@@ -71,5 +75,50 @@ export class SystemCtlController extends Controller {
 
     const response = await communication.systemctlManagement(req.body.command, req.body.service);
     return ResponseBuilder.buildResponse().status(200).body(response);
+  }
+
+  private async validateOpenVPNActivation(
+    firewall: Firewall,
+    command: string,
+    service: string,
+  ): Promise<void> {
+    if (!['start', 'restart', 'reload', 'enable'].includes(command)) return;
+
+    const instance = /^(?:openvpn|openvpn-server)@(.+)$/.exec(service)?.[1];
+    if (service !== 'openvpn' && !instance) return;
+
+    const serversQuery = db
+      .getSource()
+      .manager.getRepository(OpenVPN)
+      .createQueryBuilder('openvpn')
+      .select(['openvpn.id', 'openvpn.install_name'])
+      .innerJoin('openvpn.crt', 'crt')
+      .innerJoin('openvpn.firewall', 'firewall')
+      .where('firewall.fwCloudId = :fwcloud', { fwcloud: firewall.fwCloudId })
+      .andWhere('crt.type = 2')
+      .andWhere('openvpn.install_name != :empty', { empty: '' });
+
+    if (firewall.clusterId) {
+      serversQuery
+        .andWhere('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1');
+    } else {
+      serversQuery.andWhere('firewall.id = :id', { id: firewall.id });
+    }
+
+    const servers = await serversQuery.getMany();
+    const dbCon = db.getQuery();
+    for (const server of servers) {
+      if (instance && server.install_name.replace(/\.conf$/, '') !== instance) continue;
+
+      try {
+        await OpenVPN.validateSavedServerNetwork(dbCon, firewall.fwCloudId, server.id);
+      } catch (error) {
+        if (typeof error?.fwcErr === 'number' && typeof error.msg === 'string') {
+          throw new HttpException(error.msg, 400);
+        }
+        throw error;
+      }
+    }
   }
 }

@@ -2,10 +2,20 @@ import { expect } from 'chai';
 import {
   isSensitiveAuditKey,
   maskSensitiveAuditText,
+  redactAuditUrl,
   sanitizeAuditData,
 } from '../../../../src/models/audit/audit-log-sanitizer';
 
 describe('Audit log sanitization compatibility', () => {
+  it('redacts SSH credentials sent in request bodies', () => {
+    expect(
+      sanitizeAuditData({ sshuser: 'encrypted-user', sshpass: 'encrypted-password' }),
+    ).to.deep.equal({
+      sshuser: '[REDACTED]',
+      sshpass: '[REDACTED]',
+    });
+  });
+
   it('redacts nested credential fields without changing the source payload', () => {
     const input = {
       name: 'visible',
@@ -78,6 +88,14 @@ describe('Audit log sanitization compatibility', () => {
     for (const key of [null, undefined, '', 'name', 'x-api-key']) {
       expect(isSensitiveAuditKey(key)).to.equal(false);
     }
+  });
+
+  it('redacts repeated, encoded, and malformed query keys while retaining the original URL syntax', () => {
+    const url = '/audit?name=a+b%20c&%74oken=first&Token=second&bad%ZZ=value&&flag';
+    expect(redactAuditUrl(url)).to.equal(
+      '/audit?name=a+b%20c&%74oken=[REDACTED]&Token=[REDACTED]&bad%ZZ=[REDACTED]&&flag',
+    );
+    expect(redactAuditUrl('/audit?=value?token=hidden')).to.equal('/audit?=value?token=[REDACTED]');
   });
 
   it('redacts repeated and alternating payloads consistently', () => {

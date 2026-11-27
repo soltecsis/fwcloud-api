@@ -57,6 +57,12 @@ test('CI publishes an explicit authenticated artifact allowlist and gates both s
   );
   assert.ok(before && fixtureIndex > publicIndex);
   assert.match(scan.run, /zap-api-scan\.py/);
+  assert.match(scan.run, /\$GITHUB_WORKSPACE:\/zap\/wrk:ro/);
+  assert.match(scan.run, /\$scan_dir:\/zap\/wrk\/reports\/dast:rw/);
+  assert.match(
+    scan.run,
+    /cp -- "\$scan_dir\/authenticated\.json" reports\/dast\/authenticated\.json/,
+  );
   assert.match(scan.run, /test "\$STATUS" -eq 0/);
   assert.ok(!scan.run.includes('-I'));
   assert.ok(!scan.run.includes(' -r ') && !scan.run.includes(' -J '));

@@ -55,17 +55,11 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
    * @param policyGroup
    */
   public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup> {
-    if (
-      (
-        await this.createQueryBuilder()
-          .relation(PolicyGroup, 'policyRules')
-          .of(policyGroup)
-          .loadMany()
-      ).length === 0
-    ) {
-      await this.delete({ id: policyGroup.id }); // Modify the argument passed to the delete method
-      return policyGroup;
-    }
+    const policyRules = await this.createQueryBuilder()
+      .relation(PolicyGroup, 'policyRules')
+      .of(policyGroup)
+      .loadMany();
+    if (policyRules.length === 0) await this.delete({ id: policyGroup.id });
 
     return policyGroup;
   }

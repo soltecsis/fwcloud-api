@@ -32,6 +32,7 @@ import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
 import { Route } from '../../../../../src/models/routing/route/route.model';
+import { RouteGroup } from '../../../../../src/models/routing/route-group/route-group.model';
 import { RouteService } from '../../../../../src/models/routing/route/route.service';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { RouteController } from '../../../../../src/controllers/routing/route/route.controller';
@@ -791,6 +792,49 @@ describe(describeName('Route E2E Tests'), () => {
     });
 
     describe('@create', () => {
+      it('should create an ungrouped route at a group boundary with tied orders', async () => {
+        const groups = manager.getRepository(RouteGroup);
+        const firstGroup = await groups.save({ name: 'First group', firewallId: firewall.id });
+        const secondGroup = await groups.save({ name: 'Second group', firewallId: firewall.id });
+        const routes = new RouteRepository(manager);
+        const routeData = { routingTableId: table.id, gatewayId: gateway.id };
+        const first = await routes.save({
+          ...routeData,
+          routeGroupId: firstGroup.id,
+          route_order: 1,
+        });
+        const last = await routes.save({
+          ...routeData,
+          routeGroupId: firstGroup.id,
+          route_order: 2,
+        });
+        const next = await routes.save({
+          ...routeData,
+          routeGroupId: secondGroup.id,
+          route_order: 2,
+        });
+
+        const { body } = await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send({ gatewayId: gateway.id, to: first.id, offset: Offset.Below, idgroup: null })
+          .expect(201);
+
+        const reloaded = await routes.getRoutingTableRoutes(fwCloud.id, firewall.id, table.id);
+        expect(reloaded.map(({ id, routeGroupId }) => [id, routeGroupId])).to.deep.equal([
+          [first.id, firstGroup.id],
+          [last.id, firstGroup.id],
+          [body.data.id, null],
+          [next.id, secondGroup.id],
+        ]);
+      });
+
       it('guest user should not create a route', async () => {
         return await request(app.express)
           .post(

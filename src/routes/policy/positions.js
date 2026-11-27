@@ -21,14 +21,15 @@
 */
 
 
-var express = require('express');
-var router = express.Router();
+import { createOperationRouter, legacyOperation } from '../../authorization/legacy-operation';
+import { consultationOperation } from '../../authorization/operation-policy';
+var router = createOperationRouter();
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
 /* Get all policy_positions by Type*/
-router.put('/get', async(req, res) => {
+legacyOperation(router, 'put', '/get', consultationOperation, async(req, res) => {
     try {
         const data = await PolicyPosition.getPolicyPositionsByType(req.dbCon, req.body.type);
         //If exists policy_position get data

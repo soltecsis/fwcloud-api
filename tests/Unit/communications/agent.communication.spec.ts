@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AgentCommunication } from '../../../src/communications/agent.communication';
+import {
+  AgentCommunication,
+  parseAgentProgressMessage,
+} from '../../../src/communications/agent.communication';
 import axios from 'axios';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
@@ -74,6 +77,130 @@ describe(AgentCommunication.name, () => {
         { filename: 'crt1', hash: 'hash1' },
         { filename: 'crt2', hash: 'hash2' },
       ]);
+    });
+  });
+
+  describe('agent policy recovery progress', () => {
+    it('propagates the recovery status of a failed individual installation', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').rejects({
+        isAxiosError: true,
+        message: 'Request failed',
+        response: { data: { message: 'Policy failed', recovery_status: 'restored' } },
+      });
+      try {
+        await agent.installFirewallPolicy(__filename);
+        expect.fail('Expected installation to fail');
+      } catch (error) {
+        expect(error.recoveryStatus).to.equal('restored');
+        expect(error.message).to.equal('Policy failed');
+      }
+    });
+
+    it('maps agent rollback errors and informational progress to typed payloads', () => {
+      const failure = parseAgentProgressMessage(
+        JSON.stringify({
+          fwcloud_agent_progress: true,
+          type: 'error',
+          message: 'ERROR: Policy start failed. Restoring previous policy.',
+        }),
+      );
+      const restored = parseAgentProgressMessage(
+        JSON.stringify({
+          fwcloud_agent_progress: true,
+          type: 'info',
+          message: 'Previous policy restored. Loading policy.',
+        }),
+      );
+
+      expect(failure.type).to.equal('error');
+      expect(failure.message).to.equal('ERROR: Policy start failed. Restoring previous policy.');
+      expect(restored.type).to.equal('info');
+      expect(restored.message).to.equal('Previous policy restored. Loading policy.');
+    });
+
+    it('keeps unstructured agent output as command output', () => {
+      const payload = parseAgentProgressMessage('Policy load completed in 0.306s');
+
+      expect(payload.type).to.equal('ssh_cmd_output');
+      expect(payload.message).to.equal('Policy load completed in 0.306s');
+    });
+  });
+
+  describe('policy script history', () => {
+    it('returns the backup reported by a coordinated installation', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').resolves({
+        data: {
+          backup_name: 'fwcloud-20261116123045.sh',
+          script_path: '/etc/fwcloud/fwcloud.sh',
+        },
+      });
+      const result = await agent.installCoordinatedFirewallPolicy(
+        __filename,
+        'fwcloud-20261116123045.sh',
+      );
+      expect(result).to.deep.equal({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: '/etc/fwcloud/fwcloud.sh',
+      });
+    });
+
+    it('requests recovery of the exact backup from the agent', async () => {
+      const stub = sinon.stub(axios, 'post').resolves({ data: '' });
+      await agent.recoverFirewallPolicy({
+        backupName: 'fwcloud-20261116123045.sh',
+        scriptPath: '/etc/fwcloud/fwcloud.sh',
+      });
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/recover');
+      expect(stub.firstCall.args[1]).to.deep.equal({
+        backup_name: 'fwcloud-20261116123045.sh',
+        script_path: '/etc/fwcloud/fwcloud.sh',
+      });
+    });
+
+    it('reports that no previous policy was backed up', async () => {
+      sinon.stub(agent as any, 'createWebSocket').resolves('ws-id');
+      sinon.stub(axios, 'post').resolves({ data: { backup_name: null, script_path: null } });
+      expect(await agent.installCoordinatedFirewallPolicy(__filename, 'fwcloud-20261116123045.sh'))
+        .to.be.null;
+    });
+    it('should retrieve the policy script history from the agent', async () => {
+      const history = [
+        {
+          path: '/etc/fwcloud/fwcloud.sh',
+          compilation_date: '2026-11-18 09:30:00',
+          installation_date: '2026-11-18 09:31:00',
+        },
+      ];
+      const stub = sinon.stub(axios, 'get').resolves({ status: 200, data: history });
+
+      expect(await agent.getFirewallPolicyScriptHistory()).to.deep.equal(history);
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/history');
+    });
+
+    it('should retrieve content and compare selected policy scripts through the agent', async () => {
+      const stub = sinon.stub(axios, 'post');
+      stub.onFirstCall().resolves({ status: 200, data: { content: '#!/bin/sh\n' } });
+      stub.onSecondCall().resolves({ status: 200, data: { diff: '1c1\n' } });
+
+      expect(await agent.getFirewallPolicyScriptContent('/etc/fwcloud/fwcloud.sh')).to.deep.equal({
+        content: '#!/bin/sh\n',
+      });
+      expect(
+        await agent.compareFirewallPolicyScripts(
+          '/etc/fwcloud/fwcloud.sh',
+          '/etc/fwcloud/fwcloud-20261118090000.sh',
+        ),
+      ).to.deep.equal({ diff: '1c1\n' });
+
+      expect(stub.firstCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/content');
+      expect(stub.firstCall.args[1]).to.deep.equal({ file: '/etc/fwcloud/fwcloud.sh' });
+      expect(stub.secondCall.args[0]).to.equal('http://host:0/api/v1/fwcloud_script/diff');
+      expect(stub.secondCall.args[1]).to.deep.equal({
+        file1: '/etc/fwcloud/fwcloud.sh',
+        file2: '/etc/fwcloud/fwcloud-20261118090000.sh',
+      });
     });
   });
 

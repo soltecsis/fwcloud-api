@@ -40,6 +40,10 @@ export class DHCPRuleCreateDto {
   @IsOptional()
   groupId?: number;
 
+  @IsIn([null])
+  @IsOptional()
+  idgroup?: null;
+
   @IsNumber()
   @IsOptional()
   firewallId?: number;
