@@ -1,11 +1,15 @@
 import { Application } from '../../../../src/Application';
 import db from '../../../../src/database/database-manager';
 import { AuditLog } from '../../../../src/models/audit/AuditLog';
-import { Firewall } from '../../../../src/models/firewall/Firewall';
+import {
+  Firewall,
+  FireWallOptMask,
+  FirewallPluginMask,
+} from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { Interface } from '../../../../src/models/interface/Interface';
-import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { PolicyRule, SpecialPolicyRules } from '../../../../src/models/policy/PolicyRule';
 import { PROFILE_APPLICATION_AUDIT_CALL } from '../../../../src/models/replication-profile/profile-application.service';
 import {
   PROFILE_CLONE_AUDIT_CALL,
@@ -331,6 +335,204 @@ describe(describeName('Replication Profile E2E Tests'), () => {
           expect(persisted.userId).to.be.eq(adminUser.id);
           expect(persisted.isBuiltin).to.be.false;
         });
+    });
+
+    it('preserves global firewall settings through capture, versioning, preview and cross-cloud application', async () => {
+      const source = await makeSourceFirewall();
+      const manager = db.getSource().manager;
+      const capturedSettings = {
+        options:
+          FireWallOptMask.STATEFUL |
+          FireWallOptMask.IPv4_FORWARDING |
+          FireWallOptMask.IPv6_FORWARDING |
+          FireWallOptMask.LOG_ALL,
+        plugins: FirewallPluginMask.openvpn,
+      };
+      const disabledSettings = { options: 0, plugins: 0 };
+      const initialTargetOptions = FireWallOptMask.IPv4_FORWARDING;
+      const installSecret = 'source-install-api-key';
+      await manager.query(
+        'UPDATE firewall SET options = ?, plugins = ?, install_apikey = ? WHERE id = ?',
+        [capturedSettings.options, capturedSettings.plugins, installSecret, source.id],
+      );
+
+      const code = `${codePrefix}global-settings`;
+      const cookie = [attachSession(adminUserSessionId)];
+      const profileUrl = `/fwclouds/${fwCloud.id}/profiles/${code}`;
+      const capture = await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', cookie)
+        .send({ source: { kind: 'firewall', id: source.id }, name: 'Firewall settings', code })
+        .expect(201);
+      expect(capture.body.data.model.firewallSettings).to.deep.eq(capturedSettings);
+      const persisted = loadReplicationProfileModel(
+        await repository.findOneByOrFail({ code, versionSlot: 'latest' }),
+      );
+      expect(persisted.firewallSettings).to.deep.eq(capturedSettings);
+      expect(JSON.stringify(persisted)).not.to.include(installSecret);
+
+      const saveVersion = (name: string, model: typeof persisted) =>
+        request(app.express)
+          .post(`${profileUrl}/versions`)
+          .set('Cookie', cookie)
+          .send(makeCreatePayload({ name, scope: 'fwcloud', model }))
+          .expect(201);
+      const oldClientModel = { ...persisted };
+      delete oldClientModel.firewallSettings;
+      await saveVersion('Firewall settings with an old client edit', oldClientModel);
+      const edited = await request(app.express)
+        .get(`${profileUrl}/latest`)
+        .set('Cookie', cookie)
+        .expect(200);
+      expect(edited.body.data.model.firewallSettings).to.deep.eq(capturedSettings);
+      await saveVersion('Firewall settings with all flags disabled', {
+        ...persisted,
+        firewallSettings: disabledSettings,
+      });
+
+      const destinationCloud = await manager
+        .getRepository(FwCloud)
+        .save({ name: StringHelper.randomize(10), locked: false });
+      const destination = await manager.getRepository(Firewall).save({
+        name: 'Firewall settings destination',
+        fwCloudId: destinationCloud.id,
+        options: initialTargetOptions,
+      });
+      const destinationUrl = `/fwclouds/${destinationCloud.id}/profiles/${code}`;
+      const target = { kind: 'firewall', id: destination.id };
+      const apply = (
+        version: string,
+        mode: 'dry_run' | 'merge',
+        parameters?: Record<string, string>,
+      ) =>
+        request(app.express)
+          .post(`${destinationUrl}/${version}/apply`)
+          .set('Cookie', cookie)
+          .send({ target, mode, parameters });
+      const destinationSettings = async () => {
+        const [settings] = await manager.query(
+          'SELECT options, plugins FROM firewall WHERE id = ?',
+          [destination.id],
+        );
+        return settings;
+      };
+      const countStatefulRules = () =>
+        manager.getRepository(PolicyRule).countBy({
+          firewallId: destination.id,
+          special: SpecialPolicyRules.STATEFUL,
+        });
+
+      for (const mode of ['dry_run', 'merge'] as const) {
+        const blocked = await apply('previous', mode).expect(422);
+        expect(blocked.body.data.applied).to.eq(false);
+        expect(blocked.body.data.errors.join(' ')).to.match(/openvpn/i);
+        expect(await destinationSettings()).to.deep.eq({
+          options: initialTargetOptions,
+          plugins: 0,
+        });
+      }
+      expect(await manager.getRepository(PolicyRule).countBy({ firewallId: destination.id })).to.eq(
+        0,
+      );
+      const blockedVpn = await request(app.express)
+        .post(`${destinationUrl}/previous/vpn`)
+        .set('Cookie', cookie)
+        .send({ target })
+        .expect(422);
+      expect(blockedVpn.body.data.errors.join(' ')).to.match(/openvpn/i);
+      expect(blockedVpn.body.data.connectionIds).to.deep.eq({});
+
+      let priorOptions = initialTargetOptions;
+      for (const [version, settings] of [
+        ['previous', capturedSettings],
+        ['latest', disabledSettings],
+      ] as const) {
+        // The destination's installation already reports the requested plugin state.
+        await manager.query('UPDATE firewall SET plugins = ? WHERE id = ?', [
+          settings.plugins,
+          destination.id,
+        ]);
+        const detail = await request(app.express)
+          .get(`${destinationUrl}/${version}`)
+          .set('Cookie', cookie)
+          .expect(200);
+        expect(detail.body.data.model.firewallSettings).to.deep.eq(settings);
+
+        const preview = await apply(version, 'dry_run').expect(200);
+        expect(preview.body.data.firewallSettings).to.deep.eq(settings);
+        expect(preview.body.data.applied).to.eq(false);
+        expect(await destinationSettings()).to.deep.eq({
+          options: priorOptions,
+          plugins: settings.plugins,
+        });
+
+        if (version === 'previous') {
+          const invalid = await apply(version, 'merge', {
+            UNKNOWN_GLOBAL_TEST: 'unexpected',
+          }).expect(422);
+          expect(invalid.body.data.errors).to.include(
+            'Unknown profile parameter "UNKNOWN_GLOBAL_TEST".',
+          );
+          expect(invalid.body.data.applied).to.eq(false);
+          expect(await destinationSettings()).to.deep.eq({
+            options: priorOptions,
+            plugins: settings.plugins,
+          });
+          expect(await countStatefulRules()).to.eq(0);
+        }
+        const applied = await apply(version, 'merge').expect(200);
+        expect(applied.body.data.applied).to.eq(true);
+        expect(await destinationSettings()).to.deep.eq(settings);
+        expect(await countStatefulRules()).to.eq(
+          settings.options & FireWallOptMask.STATEFUL ? 6 : 0,
+        );
+        priorOptions = settings.options;
+      }
+    });
+
+    it('preserves unsupported firewall option bits in the template and blocks applying them', async () => {
+      const source = await makeSourceFirewall();
+      const manager = db.getSource().manager;
+      const firewalls = manager.getRepository(Firewall);
+      const options = FireWallOptMask.STATEFUL | 0x0800; // Reserved option bit
+      await firewalls.update(source.id, { options });
+      const target = await firewalls.save({
+        name: 'Unsupported firewall settings target',
+        fwCloudId: fwCloud.id,
+        options: FireWallOptMask.IPv4_FORWARDING,
+      });
+      const code = `${codePrefix}unsupported-firewall-options`;
+      const cookie = [attachSession(adminUserSessionId)];
+      const captured = await request(app.express)
+        .post(fromSourceUrl())
+        .set('Cookie', cookie)
+        .send({
+          source: { kind: 'firewall', id: source.id },
+          name: 'Reserved firewall option',
+          code,
+        })
+        .expect(201);
+      expect(captured.body.data.model.firewallSettings.options).to.eq(options);
+      expect(
+        loadReplicationProfileModel(
+          await repository.findOneByOrFail({ code, versionSlot: 'latest' }),
+        ).firewallSettings.options,
+      ).to.eq(options);
+
+      for (const mode of ['dry_run', 'merge'] as const) {
+        const blocked = await request(app.express)
+          .post(`/fwclouds/${fwCloud.id}/profiles/${code}/latest/apply`)
+          .set('Cookie', cookie)
+          .send({ target: { kind: 'firewall', id: target.id }, mode })
+          .expect(422);
+        expect(blocked.body.data.applied).to.eq(false);
+        expect(blocked.body.data.errors).to.include(
+          'Target firewall: unsupported firewall options 0x800.',
+        );
+      }
+      expect((await firewalls.findOneByOrFail({ id: target.id })).options).to.eq(target.options);
+      expect(await manager.getRepository(PolicyRule).countBy({ firewallId: target.id })).to.eq(0);
+      expect(await manager.getRepository(Interface).countBy({ firewallId: target.id })).to.eq(0);
     });
 
     it('should preserve captured validity, negation, LOG and stateless through detail, template editing and application to another firewall', async () => {

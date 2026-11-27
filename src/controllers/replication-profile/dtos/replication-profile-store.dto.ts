@@ -69,6 +69,7 @@ import {
 } from '../../../models/replication-profile/replication-profile.constants';
 import { findSecretLikePaths } from '../../../models/replication-profile/replication-profile-secret.guard';
 import { isReplicationProfileParameterRef } from '../../../models/replication-profile/replication-profile-parameters';
+import type { ReplicationProfileFirewallSettings } from '../../../models/replication-profile/replication-profile-firewall-settings';
 
 const TARGET_KINDS: readonly string[] = REPLICATION_PROFILE_TARGET_KINDS;
 const RULE_ACTIONS: readonly string[] = REPLICATION_PROFILE_RULE_ACTIONS;
@@ -355,6 +356,11 @@ export class ReplicationProfileStoreModelDto {
   @IsOptional()
   @IsObject()
   options?: Record<string, unknown>;
+
+  /** Native firewall and cluster masks, validated with the template's topology. */
+  @IsOptional()
+  @IsObject()
+  firewallSettings?: ReplicationProfileFirewallSettings;
 
   /** Provenance of profiles captured from an existing firewall/cluster. */
   @IsOptional()

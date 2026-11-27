@@ -4,7 +4,11 @@ import { Application } from '../../../../src/Application';
 import { PolicyCompiler } from '../../../../src/compiler/policy/PolicyCompiler';
 import db from '../../../../src/database/database-manager';
 import { Cluster } from '../../../../src/models/firewall/Cluster';
-import { Firewall } from '../../../../src/models/firewall/Firewall';
+import {
+  Firewall,
+  FireWallOptMask,
+  FirewallPluginMask,
+} from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { Interface } from '../../../../src/models/interface/Interface';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
@@ -380,11 +384,52 @@ describe(describeName('Replication profile cluster node selection E2E Tests'), (
 
   it('applies node-restricted rules to the corresponding nodes of another cluster with other node ids', async () => {
     const source = await makeSource();
-    await captureEditExportAndImport(source);
+    const clusterPlugins = FirewallPluginMask.openvpn;
+    const nodeSettings = {
+      master: {
+        options: FireWallOptMask.IPv6_FORWARDING | FireWallOptMask.LOG_ALL,
+        plugins: 0,
+      },
+      backup: {
+        options: FireWallOptMask.STATEFUL | FireWallOptMask.IPv4_FORWARDING,
+        plugins: FirewallPluginMask.wireguard,
+      },
+      backup2: { options: 0, plugins: FirewallPluginMask.openvpn },
+    };
+    await manager().query('UPDATE cluster SET plugins = ? WHERE id = ?', [
+      clusterPlugins,
+      source.cluster.id,
+    ]);
+    for (const [role, nodeId] of Object.entries(mappingOf(source))) {
+      const settings = nodeSettings[role];
+      await manager().query('UPDATE firewall SET options = ?, plugins = ? WHERE id = ?', [
+        settings.options,
+        settings.plugins,
+        nodeId,
+      ]);
+    }
+    const firewallSettings = {
+      options: nodeSettings.master.options,
+      plugins: clusterPlugins,
+      nodes: nodeSettings,
+    };
+    const imported = await captureEditExportAndImport(source);
+    expect(imported.firewallSettings).to.deep.eq(firewallSettings);
+
     const target = await makeCluster(otherCloud, nodeNames('target'), [
       { name: 'ens18' },
       { name: 'ens19' },
     ]);
+    await manager().query('UPDATE cluster SET plugins = ? WHERE id = ?', [
+      clusterPlugins,
+      target.cluster.id,
+    ]);
+    for (const [role, nodeId] of Object.entries(mappingOf(target))) {
+      await manager().query('UPDATE firewall SET plugins = ? WHERE id = ?', [
+        nodeSettings[role].plugins,
+        nodeId,
+      ]);
+    }
     expect(target.nodes.map((node) => node.id)).not.to.include.members(
       source.nodes.map((node) => node.id),
     );
@@ -395,6 +440,14 @@ describe(describeName('Replication profile cluster node selection E2E Tests'), (
 
     expect(applied.body.data.errors).to.deep.eq([]);
     expect(applied.body.data.applied).to.eq(true);
+    expect(applied.body.data.firewallSettings).to.deep.eq(firewallSettings);
+    for (const [role, nodeId] of Object.entries(mappingOf(target))) {
+      const [settings] = await manager().query(
+        'SELECT options, plugins FROM firewall WHERE id = ?',
+        [nodeId],
+      );
+      expect(settings).to.deep.eq(nodeSettings[role]);
+    }
     await verifyPolicy(target, { wan: 'ens18', lan: 'ens19' });
     const scripts = await compiledForward(otherCloud, target.nodes[0]);
     expect(scripts.get(RULES[0].comment)).to.match(
@@ -418,6 +471,7 @@ describe(describeName('Replication profile cluster node selection E2E Tests'), (
       .expect(201);
     expect(recaptured.body.data.warnings).to.deep.eq([]);
     expect(nodeRolesOf(recaptured.body.data.model.provision.rules)).to.deep.eq(EXPECTED_NODE_ROLES);
+    expect(recaptured.body.data.model.firewallSettings).to.deep.eq(firewallSettings);
   });
 
   it('reproduces the original node-specific firewall script on a new cluster with the same nodes', async () => {

@@ -104,6 +104,35 @@ function pathsFor(payload: unknown): Array<string | undefined> {
   return errorsFor(payload).map((error) => error.path);
 }
 
+describe('Global replication profile firewall settings validation', () => {
+  it('accepts legacy definitions, partial settings and explicit zero masks', () => {
+    const payload = firewallProfile();
+    expect(errorsFor(payload)).to.deep.eq([]);
+    for (const settings of [{ options: 0 }, { plugins: 0 }, { options: 0, plugins: 0 }]) {
+      model(payload).firewallSettings = settings;
+      expect(errorsFor(payload)).to.deep.eq([]);
+    }
+  });
+
+  it('rejects malformed masks and fields outside the portable settings', () => {
+    const payload = firewallProfile();
+    model(payload).firewallSettings = { options: false, plugins: '0', install_port: 22 };
+    expect(pathsFor(payload)).to.have.members([
+      'model.firewallSettings.options',
+      'model.firewallSettings.plugins',
+      'model.firewallSettings.install_port',
+    ]);
+  });
+
+  it('requires cluster node settings to refer to declared roles', () => {
+    const payload = clusterProfile();
+    model(payload).firewallSettings = { nodes: { primary: { options: 0, plugins: 0 } } };
+    expect(errorsFor(payload)).to.deep.eq([]);
+    model(payload).firewallSettings = { nodes: { unknown: { options: 0 } } };
+    expect(pathsFor(payload)).to.include('model.firewallSettings.nodes.unknown');
+  });
+});
+
 describe('Native replication profile rule options validation', () => {
   for (const field of ['provision', 'policyStructure', 'policy_structure']) {
     it(`accepts missing options and every independent LOG/stateless setting in ${field}`, () => {

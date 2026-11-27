@@ -1,4 +1,7 @@
-import type { ReplicationProfileVersionSlot } from '../../../models/replication-profile/replication-profile-template';
+import type {
+  ReplicationProfileModel,
+  ReplicationProfileVersionSlot,
+} from '../../../models/replication-profile/replication-profile-template';
 
 export interface ReplicationProfileTemplateErrorDto {
   reason: string;
@@ -16,7 +19,7 @@ export interface ReplicationProfileResponseDto {
   category: string | null;
   targetKind: string;
   /** Loaded from the profile template; null when that template could not be read. */
-  model: Record<string, unknown> | null;
+  model: ReplicationProfileModel | null;
   /** Why the template could not be read: the profile is still listed, marked, but unusable. */
   templateError: ReplicationProfileTemplateErrorDto | null;
   isBuiltin: boolean;

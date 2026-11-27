@@ -45,7 +45,7 @@ class IsRoleIdMapConstraint implements ValidatorConstraintInterface {
   }
 }
 
-function IsRoleIdMap(validationOptions?: ValidationOptions) {
+export function IsRoleIdMap(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isRoleIdMap',
