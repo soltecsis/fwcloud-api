@@ -361,7 +361,10 @@ export function crowdSecProgressPayload(message: string): ProgressPayload {
     : new ProgressSSHCmdPayload(sanitizeCrowdSecProgressMessage(message));
 }
 
-export function parseAgentProgressMessage(message: string): ProgressPayload {
+export function parseAgentProgressMessage(
+  message: string,
+  allowCrowdSecProgress = false,
+): ProgressPayload {
   let progressMessage: AgentProgressMessage;
   try {
     progressMessage = JSON.parse(message);
@@ -376,6 +379,13 @@ export function parseAgentProgressMessage(message: string): ProgressPayload {
     return progressMessage.type === 'error'
       ? new ProgressErrorPayload(progressMessage.message)
       : new ProgressInfoPayload(progressMessage.message);
+  }
+
+  if (allowCrowdSecProgress) {
+    const crowdSecProgress = parseCrowdSecProgressMessage(message);
+    if (crowdSecProgress) {
+      return new ProgressPayload(crowdSecProgress.message_type, false, crowdSecProgress.message);
+    }
   }
 
   return new ProgressPayload('ssh_cmd_output', false, message);
@@ -432,7 +442,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       form.append('dst_dir', './tmp');
       form.append('perms', 700);
       form.append('upload', fs.createReadStream(scriptPath));
-      form.append('ws_id', await this.createWebSocket(eventEmitter));
+      form.append('ws_id', await this.createWebSocket(eventEmitter, true));
       if (crowdSecBackend !== undefined) {
         form.append('crowdsec_backend', crowdSecBackend);
       }
@@ -480,7 +490,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       form.append('perms', 700);
       form.append('backup_name', backupName);
       form.append('upload', fs.createReadStream(scriptPath));
-      form.append('ws_id', await this.createWebSocket(eventEmitter));
+      form.append('ws_id', await this.createWebSocket(eventEmitter, true));
       eventEmitter.emit(
         'message',
         new ProgressInfoPayload(`Uploading firewall policy (${this.connectionData.host})`),
@@ -1012,7 +1022,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  protected createWebSocket(eventEmitter: EventEmitter): Promise<string> {
+  protected createWebSocket(
+    eventEmitter: EventEmitter,
+    allowCrowdSecProgress = false,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const pathUrl: string = this.ws_url + '/api/v1/ws';
       const ws = new WebSocket(pathUrl, {
@@ -1044,7 +1057,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           waiting_for_websocket_id = false;
           resolve(message);
         } else {
-          eventEmitter.emit('message', parseAgentProgressMessage(message));
+          eventEmitter.emit('message', parseAgentProgressMessage(message, allowCrowdSecProgress));
         }
       });
 
