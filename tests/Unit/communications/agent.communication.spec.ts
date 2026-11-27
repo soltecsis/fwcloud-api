@@ -131,6 +131,19 @@ describe(AgentCommunication.name, () => {
       expect(payload.type).to.equal('ssh_cmd_output');
       expect(payload.message).to.equal('Policy load completed in 0.306s');
     });
+
+    it('maps CrowdSec reconciliation progress only for policy installations', () => {
+      for (const type of ['info', 'success', 'warning', 'error']) {
+        const message = JSON.stringify({ message_type: type, message: 'api_key: secret-key' });
+        const payload = parseAgentProgressMessage(message, true);
+        expect(payload.type).to.equal(type);
+        expect(payload.message).to.equal('api_key: [REDACTED]');
+        expect(parseAgentProgressMessage(message).type).to.equal('ssh_cmd_output');
+      }
+      const output = parseAgentProgressMessage('Reading package lists...', true);
+      expect(output.type).to.equal('ssh_cmd_output');
+      expect(output.message).to.equal('Reading package lists...');
+    });
   });
 
   describe('policy script history', () => {
